@@ -27,8 +27,8 @@
 <meta property="og:image" content="https://warden2018.github.io/images/def_correlation.png">
 <meta property="og:image" content="https://warden2018.github.io/images/regression_analysis.png">
 <meta property="og:image" content="https://warden2018.github.io/images/linear_regression.png">
-<meta property="article:published_time" content="2023-12-23T16:00:00.000Z">
-<meta property="article:modified_time" content="2024-01-24T06:09:56.237Z">
+<meta property="article:published_time" content="2023-12-23T20:00:00.000Z">
+<meta property="article:modified_time" content="2024-02-01T10:07:37.704Z">
 <meta property="article:author" content="Yang">
 <meta property="article:tag" content="读书">
 <meta name="twitter:card" content="summary_large_image">
@@ -354,7 +354,7 @@ mjx-container[display="true"] + br {
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2023-12-24 00:00" pubdate>
+        <time datetime="2023-12-24 04:00" pubdate>
           2023年12月24日 凌晨
         </time>
       </span>
@@ -366,7 +366,7 @@ mjx-container[display="true"] + br {
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          3.2k 字
+          3.3k 字
         
       </span>
     
@@ -377,7 +377,7 @@ mjx-container[display="true"] + br {
         
         
         
-          27 分钟
+          28 分钟
         
       </span>
     
@@ -499,6 +499,9 @@ Rates）：在一个特定的群体当中，某个特定的属性的比例，例
 <li>如何在实践中利用这个效应？</li>
 </ul>
 <p>在做预测分析的时候，可以根据历史数据得到回归分析的结果，然后，根据个例的最近情况，比如最近三年的走势，结合回归分析结果进行加权平均，得到的加权平均更具有说服力。作者举例的连锁百货公司的下一年的门店销售额增长情况，需要在平均增长情况的基础上，对业绩较差的门店赋予大于10%的增长率，对于业绩较好的门店赋予小于10%的增长率。个人认为，这只是一种思维方式，需要我们使用更精确的数学模型来刻画这种变化情况。</p>
+<h1 id="第18章-如何让直觉性预测更恰当有效">第18章
+如何让直觉性预测更恰当有效</h1>
+<p>对问题的预测和对问题的估测是不同的，到底哪里不同？</p>
 
                 
               </div>
@@ -589,6 +592,12 @@ Rates）：在一个特定的群体当中，某个特定的属性的比例，例
                   <article class="post-prev col-6">
                     
                     
+                      <a href="/2024/02/05/2024-02-04-DuBai/" title="迪拜AEEDC2024展会">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">迪拜AEEDC2024展会</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
                   </article>
                   <article class="post-next col-6">
                     
@@ -643,6 +652,19 @@ Rates）：在一个特定的群体当中，某个特定的属性的比例，例
 
     <div class="side-col d-none d-lg-block col-lg-2">
       
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
 
     </div>
   </div>
@@ -794,6 +816,46 @@ Rates）：在一个特定的群体当中，某个特定的属性的比例，例
   
 
 
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
 
 
   <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
