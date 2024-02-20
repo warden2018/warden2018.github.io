@@ -29,6 +29,31 @@
   
   
   <entry>
+    <title>Nvidia Chat With RTX</title>
+    <link href="/2024/01/20/2024-02-20-Nvidia-chatRTX/"/>
+    <url>/2024/01/20/2024-02-20-Nvidia-chatRTX/</url>
+    
+    <content type="html"><![CDATA[<h2 id="安装部署">安装部署</h2><p><a href="https://us.download.nvidia.com/RTX/NVIDIA_ChatWithRTX_Demo.zip">软件下载地址</a></p><figure><img src="/images/Chat_with_RTX_install.png" alt="安装界面"><figcaption aria-hidden="true">安装界面</figcaption></figure><p>一路点击下一步安装即可。</p><figure><img src="/images/Chat_with_RTX_install2.png" alt="安装界面2"><figcaption aria-hidden="true">安装界面2</figcaption></figure><p>安装过程需要耐心等待，我可能等了差不多两个小时，最后安装成功。</p><p>安装完成之后，在桌面会出现<code>NVIDIA Chat with RTX</code>快捷方式，就是一个启动脚本。如果是默认路径安装的话，需要修改<code>path</code>：</p><p><code>C:\Users\Yang\AppData\Local\NVIDIA\ChatWithRTX\RAG\trt-llm-rag-windows-main\config\preferences.json</code></p><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">{</span><br>  <span class="hljs-attr">"dataset"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><br>    <span class="hljs-attr">"path"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"C://Users//Yang//Desktop//rtx"</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">"isRelative"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><br>  <span class="hljs-punctuation">}</span><br><span class="hljs-punctuation">}</span><br></code></pre></td></tr></table></figure><figure><img src="/images/Chat_with_RTX_share_params.png" alt="加参数"><figcaption aria-hidden="true">加参数</figcaption></figure><h2 id="运行">运行</h2><figure><img src="/images/Chat_with_RTX_install_running.png" alt="加载模型和参数"><figcaption aria-hidden="true">加载模型和参数</figcaption></figure><figure><img src="/images/Chat_with_RTX_install_running_finish.png" alt="根据路径下文件内容生成embeddings"><figcaption aria-hidden="true">根据路径下文件内容生成embeddings</figcaption></figure><p>这里有一个问题就是：如果我的数据库当中增加或者减少文件，需要重新生成embeddings,这个过程很慢。</p><figure><img src="/images/Chat_with_RTX_GPU.png" alt="GPU运行情况"><figcaption aria-hidden="true">GPU运行情况</figcaption></figure><h2 id="问问题">问问题</h2><p>由于我第一次指定的<code>path</code>下文件数量很大，导致无法全部加载成功，我减少文件数量，单独加载一个关于bikefitting的书。</p><figure><img src="/images/Chat_with_RTX_test.png" alt="测试"><figcaption aria-hidden="true">测试</figcaption></figure><figure><img src="/images/Chat_with_RTX_cabs_accidents1.png" alt="基础比例对判断的影响"><figcaption aria-hidden="true">基础比例对判断的影响</figcaption></figure><figure><img src="/images/Chat_with_RTX_cabs_accidents2.png" alt="使用贝叶斯定理计算概率1"><figcaption aria-hidden="true">使用贝叶斯定理计算概率1</figcaption></figure><figure><img src="/images/Chat_with_RTX_cabs_accidents3.png" alt="使用贝叶斯定理计算概率2"><figcaption aria-hidden="true">使用贝叶斯定理计算概率2</figcaption></figure><h2 id="感受">感受</h2><p>同样的出租车问题，我几乎使用相同的单词来询问，给出的答案不统一。稳定性不够好。其他的测试后面再补充。</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>AI</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>GPT offline</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>读书心得：思考，快与慢</title>
     <link href="/2023/12/24/2023-12-24-Book-Thinking-Fast-Slow/"/>
     <url>/2023/12/24/2023-12-24-Book-Thinking-Fast-Slow/</url>
