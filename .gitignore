@@ -1,0 +1,13 @@
+# Hugo build output
+/public/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Node modules (if any)
+node_modules/
