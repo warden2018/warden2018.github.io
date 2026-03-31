@@ -9,7 +9,7 @@ tags:
 math: true
 ---
 
-# 感谢
+## 感谢
 点一个大大的赞！
 [经典教材的重新排版](https://github.com/re-book/ptmst)
 
@@ -25,9 +25,9 @@ math: true
 
 [3blue1brown-bayes-theorem](https://www.3blue1brown.com/lessons/bayes-theorem)
 
-# 背景知识
+## 背景知识
 一本很有名的书，学习作者对内容的安排。
-![概率机器人](/images/probabilistic_robotics.png)
+![概率机器人](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/probabilistic_robotics.png)
 需要的预备知识：
 
 1. 线性代数
@@ -38,7 +38,7 @@ math: true
 
 4. 连续变量贝叶斯滤波推导
 
-# 学习心得
+## 学习心得
 首先是概念理解，需要把概念代表的物理意义搞清楚：事件≠随机变量，随机变量是对事件的数量化描述，事件是随机变量的取值，随机变量的取值可以是一个数，也可以是一个向量。概率密度函数是对随机变量的取值的概率分布的描述，概率密度函数的积分就是概率。概率密度函数的积分就是概率，概率密度函数的积分就是概率，概率密度函数的积分就是概率。重要的事情说三遍。
 
 亲自手写公式推导一遍，在这个过程中会强烈加深对内部逻辑的理解，争取可以做到经过很长时间之后，你仍然可以随便拿一张纸开始从零推导
@@ -47,11 +47,11 @@ math: true
 
 上面这一条的感受里面说的计算过程，基础是全概率下的全部样本空间，像是在一个无限大的平面上（因为真实值的取值是无穷无尽的）时刻飘过一团云，这团云和云笼罩下的区域是本次计算的结果。
 
-# 符号说明
+## 符号说明
 一般性地，我们用$\boldsymbol X$表示随机变量，用$\boldsymbol x$表示随机变量的某一个具体的取值。用$\boldsymbol{y}$表示测量值。$\boldsymbol{u}$表示系统的控制量。$\boldsymbol{w}$表示系统的过程噪声，$\boldsymbol{v}$表示测量噪声。黑体代表这些变量是向量。
 
 
-# 概率论回顾
+## 概率论回顾
 随机变量$\boldsymbol X$(Random Variable)的物理意义是把随机事件数量化。随机变量分为离散随机变量和连续随机变量。离散随机变量的取值是有限的，连续随机变量的取值是无限的。随机变量的取值可以是一个数，也可以是一个向量。个人觉得随机变量只是对随机事件的定量描述，是更加具象化的表达方式。更加核心的还是随机事件，所以下面的描述都是基于事件来推导公式的，并没有带入随机变量的表达。
 
 条件概率的定义：
@@ -77,14 +77,14 @@ $P(B_i|A)=\frac{P(B_i)P(A|B_i)}{\Sigma_{j=1}^n P(B_j)P(A|B_j)}$
 
 [维基百科](https://en.wikipedia.org/wiki/Bayes%27_theorem)里面说这个方程的分母是$P(B)$
 
-![贝叶斯公式解读](/images/Bayes_therom.png)
+![贝叶斯公式解读](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Bayes_therom.png)
 
 然后我看到了它说$P(B)$是边缘分布，然后我点进去看啥是边缘分布：
 [边缘分布](https://en.wikipedia.org/wiki/Marginal_distribution)
 
 在这里隐约感觉到：这里的论述和线性代数里面的空间向量怎么很类似？跟信号的傅里叶分解也很类似：全部都是把一个复杂的东西分解成一些简单的东西，然后再把这些简单的东西组合起来得到复杂的东西。这块简单的东西就是全样本空间下每一种样本的概率，类似于空间中的基向量，或者傅里叶变换中的基函数，然后这些基函数前面的系数就是权重或者是事件A和$B_i$重叠了多少程度，然后求和就得到了边缘概率。
 
-![边缘分布](/images/margin_distribution.png)
+![边缘分布](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/margin_distribution.png)
 
 最后再次用更好记忆的方式写一遍贝叶斯公式：
 
@@ -115,13 +115,13 @@ $$
 
 [Kalman-and-Bayesian-Filters-in-Python](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python)
 
-![evidence](/images/Bayes_evidence.png)
+![evidence](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Bayes_evidence.png)
 
-# 桥梁
+## 桥梁
 
 在纯讲概率的书籍当中，很少结合工程应用来说明概念和实际的对应关系，导致中间缺少一个可以让工程师充分理解的概念体系：
 
-![某公司的双目视觉系统](/images/atracsysFTK500_specs.png)
+![某公司的双目视觉系统](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/atracsysFTK500_specs.png)
 
 
 比如你作为某公司机器人系统研发工程师，在拿到如下的产品性能参数之后，需要开发一套可以稳定准确跟踪目标的机器人系统，这个系统可以输出空间内的特定目标的三维坐标和旋转信息，但是它的输出数据具有误差，那个RMS就代表了在不同的深度下（对于相机而言）你的系统使用到的数据的不确定性。例如在距离相机2.4m的标记点，测量数据和实际值之间最差会达到0.11mm，凭借直觉你肯定在想，假如真实值是$x=5$, 出现$y=5.01$的情况的概率是多大？出现$y=5.11$的情况的概率又是多大？但你的系统又想尽量按照真实值去跟踪目标，这时候你会想到设计一个滤波器去解决这个不确定性，如何设计能够把不确定性降到最低？你设计的这个方案肯定是需要把这个视觉系统的技术参数作为配置项应用进去的，怎么应用呢？想要解决这个工程问题，需要首先清楚如下几个概念：
@@ -130,7 +130,7 @@ $$
 
 我们对随机变量的估计是根据测量数据而得到的，怎样把测量值考虑进去？不能绝对地相信测量值，因为传感器有误差，不能绝对地相信先验分布，因为很多时候不可能掌握，比如自动驾驶汽车在碎石路上行驶的过程中地面的摩擦系数变化很大，车轮容易打滑，汽车的纵向速度随时都有可能发生变化，所以需要根据车轮上的编码器和车辆的运动模型折中地做出估计。
 
-# 连续随机变量
+## 连续随机变量
 需要解决的问题：
 1. 贝叶斯公式推导的是单独事件的概率，实际应用过程中需要的是对连续随机变量的概率密度函数进行后验估计，怎么做？
 2. 前面的内容都是需要在已知全样本以及对应的概率情况下计算当前的后验概率分布，但是实际情况中，我们无法预先知道全样本的分布情况，也不可能重复多次做实验来得到全样本，因为首先一点是连续变量理论上没有办法做有限的实验来覆盖所有的情况。
@@ -213,10 +213,10 @@ $$
 
 在书里面概率密度函数写为$p$,在这里我写为了$f$
 
-# 总结
+## 总结
 贝叶斯滤波认为对随机变量的估计需要有一个先验的分布，也需要有采样得到的样本，这样综合起来把对随机变量的分布重新按照后验的方式进行估计，得到的分布结果是更接近于真实情况的。
 
-# 参考
+## 参考
 
 [The Hilbert Space of Random Variables Electrical Engineering 126 (UC Berkeley)](https://inst.eecs.berkeley.edu/~ee126/sp18/projection.pdf)
 
@@ -231,6 +231,6 @@ $$
 [!!!GREAT series:
 Kalman-and-Bayesian-Filters-in-Python](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python)
 
-<iframe width="100%" height="800" src="/images/茆诗松概率论LaTeX.pdf">
+<iframe width="100%" height="800" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/茆诗松概率论LaTeX.pdf">
 
 [思考，快与慢](https://book.douban.com/subject/10785583/)

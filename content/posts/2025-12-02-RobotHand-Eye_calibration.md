@@ -11,14 +11,14 @@ math: true
 
 本文参考了[OPENCV](https://www.torsteinmyhre.name/snippets/robcam_calibration.html)
 
-# 问题描述
+## 问题描述
 在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。
 
-![](https://images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png)
+![](https:/https://images-1302340771.cos.ap-beijing.myqcloud.com/images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png)
 
 利用李代数和最小二乘解决$AX=XB$的问题。
 
-# 平移旋转分开求解
+## 平移旋转分开求解
 
 ## 从齐次等式提取旋转部分
 $$
@@ -46,13 +46,13 @@ $$
 ## 李代数和李群之间的相互映射
 在SO(3)上，旋转矩阵$R$的李代数$\phi$ $\boldsymbol u\in so(3)$是一个三维向量($\boldsymbol u$是一个单位向量，$\phi\in \mathbb R$)。$\boldsymbol u^{\wedge}$是一个反对称矩阵。
 
-### so(3)李代数到SO(3)的指数映射--罗德里格斯公式：
+### so(3)李代数到SO(3)的指数映射--罗德里格斯公式
 
 $$
 R=e^{\phi \boldsymbol u^{\wedge}}=\cos\phi I + (1-\cos \phi) \boldsymbol u\boldsymbol u^T + \sin \phi \boldsymbol u^{\wedge}
 $$
 
-### SO(3)到so(3)的对数映射：
+### SO(3)到so(3)的对数映射
 
 $$
 log(R)=\boldsymbol \phi^{\wedge}=\frac{\phi}{2\sin\phi}(R-R^T)
@@ -64,7 +64,7 @@ $$
 \phi = \arccos\left(\frac{trace(R)-1}{2}\right)
 $$
 
-### 李代数$\boldsymbol u=[u_1 \ u_2 \ u_3]^T$对应的反对称矩阵的定义和性质：
+### 李代数$\boldsymbol u=[u_1 \ u_2 \ u_3]^T$对应的反对称矩阵的定义和性质
 $$
 \boldsymbol u^{\wedge}=
 \begin{bmatrix}
@@ -93,7 +93,7 @@ $$
 
 因为绕着一个轴旋转$\theta$和$\theta + 2\pi$角度效果是一样的，上面的推导有一个条件，就是约束$||\boldsymbol \phi_A|| \in (-\pi,\pi]$,$||\boldsymbol \phi_B|| \in (-\pi,\pi]$。
 
-# 求解过程
+## 求解过程
 ## 测量带噪声
 在给定数据带有噪声的情况下，我们把每一组转化之间的误差进行平方和最小化：
 $$
@@ -157,7 +157,7 @@ $$
 
 到此，旋转和平移全部求出。
 
-# 代码
+## 代码
 ```C++
 void park_martin(std::vector<Eigen::Matrix4d> A, std::vector<Eigen::Matrix4d> B, Eigen::Matrix4d& result)
 {

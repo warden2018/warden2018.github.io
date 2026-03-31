@@ -23,10 +23,11 @@ tags:
 在下面的结构图当中，业务接口`Context`并不直接实现自己的成员函数，而是通过调用`State`对象的成员来完成。`State`作为实际工作的对象`ConcreteStates`的基类，提供了一切可能被`Context`调用的接口。在`ConcreteStates`内部，针对自己的状态特点，可以实现在不同接口调用下的系统行为，并且还可以直接操作`Context`对象的指针，来实现状态的切换。
 
 
-![Dive into Design patterns](/images/designPattern.png)
+![Dive into Design patterns](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/designPattern.png)
 
-![状态模式的结构](/images/status_designPattern.png)
+![状态模式的结构](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/status_designPattern.png)
 
 ## 总结
+
 1. 状态模式最大的特点是用户所关心的对象（`Context`）的状态和行为随着时间推移发生变化并不是这个对象自己切换出来的，而是它所拥有的状态自己做出了响应和切换为下一个状态。而且状态自己在赋值新状态的时候，是调用`Context`的方法获取的，获取到的这个新状态是在`Context`创建的时候已经创建好的,只能在有限的几个状态下切换。
 2. 在设计状态的时候，每一种状态要保证相互独立，没有耦合，而且需要做一个默认状态，这个状态包含了所有没有考虑进去的情况，在这种情况下，做统一的安全处理。

@@ -9,7 +9,7 @@ tags:
 math: true
 ---
 
-# 随机过程的模型建立
+## 随机过程的模型建立
 一般地，我们研究的随机过程是一个动态的系统(Dynamical Systems).
 
 $$
@@ -43,7 +43,7 @@ $$
 
 ($\ref{eq3}$)描述的是系统在当前状态下，下一时刻会如何改变，是一个一阶的微分方程组（因为状态向量是多维度的），但是这样的方程组也不是我们想要的，我们期望是可以根据前一时刻的状态直接线性运算得到后一时刻的预测状态。
 
-# 状态转移方程
+## 状态转移方程
 ($\ref{eq3}$) 描述的是下一时刻系统状态的增长或者是变化和当前的状态有什么关系，假如没有加入人为的控制，比如，让一个倒立摆自由运动，不提供平衡的直线运动单元，那么这个系统的一些特性，比如可控性，稳定性都可以通过研究$A$的特征值和特征向量来快速得到。
 加入人为的控制量$\boldsymbol{u}$可以改变系统的特性，按照我们的期望来改造，Brunton老师说得是manipulate。在动态系统的控制领域，对矩阵$A$的研究会更多，$A$的学术用语为动态系统矩阵（System Dynamics Matrix），在状态估计领域，我们对状态转移方程更关心。实际系统经常是非线性的，但是在局部我们可以线性化。目前，从一阶微分方程组如何推导出状态转移方程是本次不讨论的内容，但是是有若干种技术去实现。
 
@@ -54,11 +54,11 @@ $$
 
 ($\ref{eq4}$)中的$F$叫做状态转移矩阵（State Transition Matrix）。
 
-**非线性的系统状态转移矩阵是根据系统的雅可比矩阵来确定的，每次迭代都会变。**后续需要确认是不是这样。
+非线性的系统状态转移矩阵是根据系统的雅可比矩阵来确定的，每次迭代都会变。后续需要确认是不是这样。
 
 到目前为止，根据系统的物理定律我们在没有测量的状态下得到系统状态是如何迭代的，但是需要注意($\ref{eq4}$)中的$\boldsymbol{w}_k$：系统噪声。随着时间迭代，我们仅仅使用状态转移方程估计系统状态会越来越不准，因为描述状态的协方差矩阵$Q$会变大。
 
-# 随机过程的贝叶斯后验概率分布推导
+## 随机过程的贝叶斯后验概率分布推导
 
 根据第一讲贝叶斯滤波的基本思路，系统迭代的过程中，需要有测量数据做融合，从概率论角度讲就是测量数据$\boldsymbol{Y}$作为随机变量，根据传感器的特性，它的似然概率分布是已知的：$P(Y<y|X)$，那么在预测步骤之后，有状态向量的先验分布$P(X<x)$，那么我们的目标是得到基于两者的后验分布。
 
@@ -236,7 +236,7 @@ $$
 $$
 
 
-# 卡尔曼滤波器
+## 卡尔曼滤波器
 
 ## 引入期望的几何意义
 
@@ -355,9 +355,9 @@ $$
 K_2=\frac{||\widetilde{x}_{2p}||\times||\widetilde{x}_1||}{||\widetilde{x}_1||}
 $$
 
-![可观测部分](/images/kalman_pictorial_x1.png)
+![可观测部分](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/kalman_pictorial_x1.png)
 
-![不可观测部分](/images/kalman_pictorial_x2.png)
+![不可观测部分](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/kalman_pictorial_x2.png)
 
 
 有了直观的几何理解，后面的具体推导部分，就比较容易理解和建立对应关系了。
@@ -388,33 +388,34 @@ $$
 
    （1）随机变量$\boldsymbol{X}$和$\boldsymbol{Y}$是高斯的，具体说来就是($\ref{eq4}$)中的$\boldsymbol{w}_k$是期望为0，协方差矩阵为$Q_k$的高斯分布，($\ref{eq13}$)中的$\boldsymbol{v}_k$是期望为0，协方差矩阵为$R_k$的高斯分布。
    
-   （2）最优估计当中的损失函数定义为$L(\epsilon)=\epsilon^2$，第$k-1$次的最优估计是就是$\boldsymbol{Y}$所在空间的基的线性组合，因为这个空间内的基是满足高斯的，所以高斯的线性组合仍然为高斯的：$\boldsymbol{X}_{k-1} \sim N(\boldsymbol{\mu}^+_{k-1}, \Sigma^+_{k-1})$
+   （2）最优估计当中的损失函数定义为$L(\epsilon)=\epsilon^2$，第$k-1$次的最优估计是就是$\boldsymbol{Y}$所在空间的基的线性组合，因为这个空间内的基是满足高斯的，所以高斯的线性组合仍然为高斯的：$\boldsymbol X _{k-1} \sim N( \boldsymbol \mu _{k-1}^+ , \Sigma _{k-1} ^+)$
 
 
 4. 根据($\ref{eq19}$)推导先验概率密度：
 
 $$
-f_{k}^{-}(\boldsymbol{x})=\int_{\boldsymbol{v}=-\infty}^{\boldsymbol{v}=\infty}f_{W_k}(\boldsymbol{x}-F\boldsymbol{v}-B\boldsymbol{u}_k)f_{k-1}^{+}(\boldsymbol{v})d\boldsymbol{v}
+f _{k}^{-}(\boldsymbol{x})=\int _{\boldsymbol{v}=-\infty}^{\boldsymbol{v}=\infty}f _{W_k}(\boldsymbol{x}-F\boldsymbol{v}-B\boldsymbol{u}_k)f _{k-1}^{+}(\boldsymbol{v})d\boldsymbol{v}
 $$
 
 高斯分布概率密度函数代入：
 
 $$
-f_{k}^{-}(\boldsymbol{x})=\int_{\boldsymbol{v}=-\infty}^{\boldsymbol{v}=\infty}\frac{1}{\sqrt{2\pi Q_k}}e^{-\frac{1}{2}(\boldsymbol{x}-F\boldsymbol{v}-B\boldsymbol{u}_k)^TQ_k^{-1}(\boldsymbol{x}-F\boldsymbol{v}-B\boldsymbol{u}_k)}\frac{1}{\sqrt{2\pi \Sigma_{k-1}}}e^{-\frac{1}{2}(\boldsymbol{v}-\boldsymbol{\mu}_{k-1})^T\Sigma_{k-1}^{-1}(\boldsymbol{v}-\boldsymbol{\mu}_{k-1})}d\boldsymbol{v}
+f _{k} ^{-}(\boldsymbol{x})=\int _{\boldsymbol{v}=-\infty}^{\boldsymbol{v} =\infty}\frac{1}{\sqrt{2\pi Q_k}}e ^{-\frac{1}{2}(\boldsymbol{x}-F\boldsymbol{v}-B\boldsymbol{u}_k)^TQ_k^{-1}(\boldsymbol{x}-F\boldsymbol{v}-B\boldsymbol{u}_k)}\frac{1}{\sqrt{2\pi \Sigma _{k-1}}}e ^{-\frac{1}{2}(\boldsymbol{v}-\boldsymbol{\mu} _{k-1})^T\Sigma _{k-1}^{-1}(\boldsymbol{v}-\boldsymbol{\mu} _{k-1})}d\boldsymbol{v}
 $$
 
+ 
 
 [两个正太分布的PDF相乘仍然为正态分布的PDF](https://math.stackexchange.com/questions/1112866/product-of-two-gaussian-pdfs-is-a-gaussian-pdf-but-product-of-two-gaussian-vari)
 
-上面的推导得到结果：$\boldsymbol{X}^-_k \sim N(F\boldsymbol{\mu}^+_{k-1}+B\boldsymbol{u}_k, F\Sigma^+_{k-1}F^T+Q_k)$
+上面的推导得到结果：$\boldsymbol{X}^-_k \sim N(F\boldsymbol{\mu} _{k-1}^+ +B\boldsymbol{u} _k, F\Sigma _{k-1}^+F^T+Q_k)$
 
 $$
-\boldsymbol{\mu}^-_k=F\boldsymbol{\mu}^+_{k-1}+B\boldsymbol{u}_k
+\boldsymbol{\mu} _k^- =F\boldsymbol{\mu} _{k-1}^+ +B\boldsymbol{u}_k
 \label{eq24}\tag{24}
 $$
 
 $$
-\boldsymbol{\Sigma}^-_k=F\Sigma^+_{k-1}F^T+Q_k
+\boldsymbol{\Sigma} _k^-=F\Sigma _{k-1}^+F^T+Q_k
 \label{eq25}\tag{25}
 $$
 
@@ -473,9 +474,9 @@ $$
 - 6）上面的描述过程，其实大部分是飘在天上~
 - 7）如果我们联系上要研究的系统，$x_1(t_1)$其实就是根据系统的特性，产生的一个预测***prediction***，这个预测是独立于历史观测的，类比于最小二乘，这个预测就是那个向量$y$
 
-# mathjax 写作遇到的问题
+## mathjax 写作遇到的问题
 下标经常解析不出来，需要在下标前使用空格，例如`f_{k-1}` 写成`f _{k-1}`
 
-# 参考文献
+## 参考文献
 
 Data-Driven Science and Engineering -- Steven L. Brunton

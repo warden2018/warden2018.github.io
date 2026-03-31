@@ -15,7 +15,10 @@ theme = "PaperMod"
   ShowBreadCrumbs = true
   ShowCodeCopyButtons = true
   ShowRssButtonInSectionTermList = true
+  ShowToc = true
+  TocOpen = true
   UseHugoToc = true
+  mainSections = ["posts"]
 
   [params.homeInfoParams]
     Title = "Yang's Blog"

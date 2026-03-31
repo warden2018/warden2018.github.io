@@ -7,11 +7,12 @@ author: Yang
 tags:
   - Linear Algebra
 math: true
+mathTags: false
 ---
 
 > Besides having a rather simple geometric explanation, the singular value decomposition offers extremely effective techniques for putting linear algebraic ideas into practice.
 
-# SVD分解与四个子空间
+## SVD分解与四个子空间
 任意的线性变换都可以进行奇异值分解(SVD: Singular Value Decomposition)。之前的一篇博客讲的特征值和特征向量都是针对方阵而言的.这里任意形状的矩阵都能够进行SVD变换。给定一个$m \times n$的矩阵$A$，$rank(A)=r$，这里需要特别说明，我们可以在这个矩阵的行空间和列空间内找到$r$个线性无关的基，即使行、列空间的维度有不同。此处是核心：我们能够参考方阵，对它的特征值特征向量的推导过程得到启发，结合这里矩阵不一定是方阵（行、列维度不同的特点），能否在行子空间内找到一组相互正交的单位基向量，这组基向量通过$A$的变换在列空间内“生产”出一组也是相互正交的向量，并且这组向量正好是列空间的一组基。
 
 $$
@@ -26,14 +27,14 @@ $$
 
 $$
 \begin{equation}
-A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&0&\cdots&0\\0&\sigma_2&\cdots&0\\\vdots&\vdots&\vdots&\vdots\\0&\cdots&\cdots&\sigma_r\end{bmatrix}
+A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&0&\cdots&0\\\\ 0&\sigma_2&\cdots&0\\\\ \vdots&\vdots&\vdots&\vdots\\\\ 0&\cdots&\cdots&\sigma_r\end{bmatrix}
 \end{equation}
 \label{eq2}\tag{2}
 $$
 
 写成更简单的形式是：$AV=U\Lambda$。
 
-![](/images/svd_4spaces.png)
+![](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/svd_4spaces.png)
 
 
 ## 矩阵对行空间向量的变换 2025-06-13
@@ -55,9 +56,9 @@ $$
 A\boldsymbol x=[\boldsymbol u_1 & \boldsymbol u_2 & \cdots & \boldsymbol u_r]
 \end{matrix}
 \begin{bmatrix}
-    \alpha_1\sigma_1 & 0 & \dots & 0 \\
-    0       & \alpha_2\sigma_2 & \dots & 0 \\
-    \vdots \\
+    \alpha_1\sigma_1 & 0 & \dots & 0 \\\\
+    0       & \alpha_2\sigma_2 & \dots & 0 \\\\
+    \vdots \\\\
     0 & 0 & \dots & \alpha_r\sigma_r
 \end{bmatrix}
 $$
@@ -94,7 +95,7 @@ $$
 
 最近在知乎上又看到了[硬核机器学习文章分享](https://www.zhihu.com/people/linghan-cheung)的回答，在他的回答中，两组正交基分别就是矩阵行空间、列空间的标准正交基。如果不好记忆的话，我们可以对比矩阵和向量的乘法，$\boldsymbol{x}$向量的维度和矩阵的行向量是一致的，所以 $\boldsymbol{v_i}$ 向量是用来分解给定的向量的，这样我们就很容易得到酉矩阵$U$的列向量是原矩阵列向量的一组标准正交基构成。
 
-![](/images/svd_process.png)
+![](https://images-1302340771.cos.ap-beijing.myqcloud.com/images/svd_process.png)
 
 ### 总结一下
 
@@ -125,21 +126,21 @@ $$
 A=[\boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r}|\boldsymbol{u_{r+1}}\ \boldsymbol{u_{r+2}}\cdots \boldsymbol{u_m}]
 \begin{bmatrix}
     \sigma_1&0&\cdots&0
-    \\0&\sigma_2&\cdots&0
-    \\\vdots&\vdots&\vdots&\vdots
-    \\0&\cdots&\cdots&\sigma_r
-    \\0&\cdots&\cdots&0
-    \\\vdots&\vdots&\vdots&\vdots
-    \\0&\cdots&\cdots&0
+    \\\\ 0&\sigma_2&\cdots&0
+    \\\\ \vdots&\vdots&\vdots&\vdots
+    \\\\ 0&\cdots&\cdots&\sigma_r
+    \\\\ 0&\cdots&\cdots&0
+    \\\\ \vdots&\vdots&\vdots&\vdots
+    \\\\ 0&\cdots&\cdots&0
 \end{bmatrix}
 \begin{bmatrix}
-    \boldsymbol{v_1^T}
-    \\\boldsymbol{v_2^T}
-    \\\vdots
-    \\\boldsymbol{v_r^T}
-    \\\boldsymbol{v_{r+1}^T}
-    \\\vdots
-    \\\boldsymbol{v_n^T}
+    \boldsymbol {v_1^T}
+    \\\\ \boldsymbol{v_2^T}
+    \\\\ \vdots
+    \\\\ \boldsymbol{v_r^T}
+    \\\\ \boldsymbol{v_{r+1}^T}
+    \\\\ \vdots
+    \\\\ \boldsymbol{v_n^T}
 \end{bmatrix}
 \label{eq:5}
 \end{equation}

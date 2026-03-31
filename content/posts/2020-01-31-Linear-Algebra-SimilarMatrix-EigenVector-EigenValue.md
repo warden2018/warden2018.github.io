@@ -10,7 +10,7 @@ tags:
 
 math: true
 ---
-# 相似矩阵
+## 相似矩阵
 
 ## 问题描述
 
@@ -34,7 +34,7 @@ $$
 
 $$
 \begin{equation}
-\boldsymbol{b} = \begin{bmatrix}\boldsymbol{\beta_1} & \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n}  \end{bmatrix}\boldsymbol{x_2}
+\boldsymbol{b} = \begin{bmatrix}\boldsymbol{\beta_1} & \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n}  \end{bmatrix}\boldsymbol{x_2} \tag{2}
 \end{equation}
 $$
 
@@ -77,7 +77,8 @@ $$
 
 $$
 \begin{equation}
-\boldsymbol{\beta_1}=[\boldsymbol{\alpha}]\boldsymbol{p_1}
+\boldsymbol{\beta_1}=[\boldsymbol{\alpha}]\boldsymbol{p_1} 
+\tag{6}
 \end{equation}
 $$
 
@@ -105,7 +106,7 @@ $$
 
 $$
 \begin{equation}
-[\boldsymbol{\alpha}](\boldsymbol{x_1}-P\boldsymbol{x_2})=0
+[\boldsymbol {\alpha}](\boldsymbol{x _1}-P\boldsymbol{x_2})=0
 \label{eq9}\tag{9}
 \end{equation}
 $$
@@ -148,7 +149,7 @@ $[\boldsymbol{\alpha}] \boldsymbol{x}=0$只有零解，同样的，$[\boldsymbol
 一个线性变换是一个函数。一旦确定了这个函数对定义域中的每一个对象的变换，也就确定了这个函数。所以，从这一点上看，变换和基也是“配套使用”。就像线性空间内的任意一个对象需要一组基和一个列向量。但是，线性空间内的每一个元素最小需要一组基来做**线性组合**。
 通过刚才的步骤，相似矩阵是在不同的基下，描述同一个线性变换所对应的所有矩阵。这个矩阵的构造是我们从两个基开始的，每一个列向量中的元素是遍历一个基中的向量向另外一个基所有向量做投影之后得到的数。一步一步地完成了两个空间之间变换关系。请大家注意推导过程的($\ref{eq10}$)，同一个向量，在两个基中的表达不同，就需要$P$转换。适用于两组基下的所有向量。
 
-# 矩阵的特征值和特征向量
+## 矩阵的特征值和特征向量
 
 定义：$n$维非零向量$\boldsymbol{v}$是$n \times n$方阵$A$的特征向量，当且仅当满足如下的等式
 
@@ -169,7 +170,7 @@ AQ=Q\Lambda
 $$
 
 其中:
-$$\Lambda=\begin{bmatrix}\lambda_1 &0& \cdots &0\\0&\lambda_2& \cdots &0\\ \vdots&\vdots&\vdots&\vdots\\0&0&0&\lambda_n\end{bmatrix}$$
+$$\Lambda=\begin{bmatrix}\lambda_1 &0& \cdots &0\\\\ 0&\lambda_2& \cdots &0\\\\ \vdots&\vdots&\vdots&\vdots\\\\ 0&0&0&\lambda_n\end{bmatrix}$$
 
 从而得到：$A=Q\Lambda Q^{-1}$。
 $A$和$\Lambda$是一对相似矩阵。再回顾上面的小节，($\ref{eq7}$)和($\ref{eq12}$)，$[\boldsymbol{\beta}]$空间中的每一个基向量在$[\boldsymbol{\alpha}]$空间基向量的投影从上往下串成一个列向量，再把这些列向量按列排布。
