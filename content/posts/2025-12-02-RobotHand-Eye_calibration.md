@@ -14,7 +14,7 @@ math: true
 ## 问题描述
 在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。
 
-![](https:/https://images-1302340771.cos.ap-beijing.myqcloud.com/images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png)
+![](https://images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png)
 
 利用李代数和最小二乘解决$AX=XB$的问题。
 
@@ -83,10 +83,10 @@ $$
 
 $$
 \begin{aligned}
-& R_AR_X=R_XR_B \\
-& R_A=R_XR_BR_X^T \\
-& log(R_A)=log(R_XR_BR_X^T) \leftarrow \boldsymbol \phi_A^\wedge=log(R_A),\boldsymbol \phi_B^\wedge=log(R_B)\\
-& \boldsymbol \phi_A^\wedge=R_X\boldsymbol \phi_B^\wedge R_X^T \leftarrow (R_X \boldsymbol \phi_B)^\wedge=R_X\boldsymbol \phi_B^\wedge R_X^T\\
+& R_AR_X=R_XR_B \\\\
+& R_A=R_XR_BR_X^T \\\\
+& log(R_A)=log(R_XR_BR_X^T) \leftarrow \boldsymbol \phi_A^\wedge=log(R_A),\boldsymbol \phi_B^\wedge=log(R_B)\\\\
+& \boldsymbol \phi_A^\wedge=R_X\boldsymbol \phi_B^\wedge R_X^T \leftarrow (R_X \boldsymbol \phi_B)^\wedge=R_X\boldsymbol \phi_B^\wedge R_X^T\\\\
 & \boldsymbol \phi_A=R_X\boldsymbol \phi_B
 \end{aligned}
 $$
@@ -137,20 +137,20 @@ $$
 
 $$
 \begin{aligned}
-& M_i=R_{A_i}-I,\boldsymbol y_i=R^\star_X\boldsymbol b_{B_i} -\boldsymbol b_{A_i} \\
+& M_i=R_{A_i}-I,\boldsymbol y_i=R^\star_X\boldsymbol b_{B_i} -\boldsymbol b_{A_i} \\\\
 & C=
 \begin{bmatrix}
-M_1 \\
-M_2 \\
-\vdots \\
+M_1 \\\\
+M_2 \\\\
+\vdots \\\\
 M_N
-\end{bmatrix} \\
+\end{bmatrix} \\\\
 & Y=\begin{bmatrix}
-\boldsymbol y_1 \\
-\boldsymbol y_2 \\
-\vdots \\
+\boldsymbol y_1 \\\\
+\boldsymbol y_2 \\\\
+\vdots \\\\
 \boldsymbol y_N
-\end{bmatrix} \\
+\end{bmatrix} \\\\
 & \boldsymbol b_X^\ast= \arg_{\boldsymbol b_X}min(C\boldsymbol b_X-Y)=C^{-1}C(CC^T)^{-1}C^T=(CC^T)^{-1}C^T
 \end{aligned}
 $$
