@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>学习RL(二) | Yang&#39;s Blog</title>
+<meta name="keywords" content="强化学习">
+<meta name="description" content="动态规划
+在环境动力学模型$p(s&rsquo;, r|s, a)$已知的情况下，学习状态价值或者是动作价值。
+策略评估&ndash;Policy Evaluation
+讨论的是如何在已知策略的情况下计算状态价值函数，从而得到采用该策略的价值有多大。
+在DP当中policy evaluation就是计算状态价值函数，也就做prediction problem。
+
+这里讨论的是如何计算状态价值函数，该函数是从初始的状态(不准)迭代计算的，迭代的终止条件是状态价值的更新幅度小于一个预设的阈值$\theta$，也就是说当状态价值函数的更新幅度小于$\theta$的时候，就认为状态价值函数已经收敛了。
+还有一个具体的细节：提到了两种状态价值迭代的方式，一种是维护上一次所有状态价值的数组和当前状态价值的数组，计算当前的状态价值的时候只参考上一个状态的数组，还有一种是直接将上一次的数组某个状态价值更新了，其他状态价值的计算直接用更新了的。后面的讨论默认都是基于第二种方式。
+明显地，想要实现上面的计算过程有一个概率需要知道，那就是状态转移概率$p(s&rsquo;, r|s, a)$，也就是在状态$s$下采取行动$a$之后，转移到状态$s&rsquo;$并且得到奖励$r$的概率，这也是叫做环境模型已知。这个概率在DP当中是已知的，在后续的MC和TD当中是未知的。
+策略改进&ndash;Policy Improvement
+讨论的是在已有一个策略，且该策略所对应的状态价值已经确定的情况下，如何调整$a=\pi(s)$为$a&rsquo;=\pi&rsquo;(s)$，使得改进了的策略在将来与环境交互中获得更多的奖励。
+想法的来源是在状态为s的情况下，我们知道，继续沿用策略$\pi$, 所得到的后续收益就是$V(s)=\mathbb{E}(G|S=s)$。那么，一个问题来了：有没有可能，在状态为$s$的情况下，采取一个不同于$\pi(s)$的行动$a&rsquo;$, 从而得到一个更大的收益$\mathbb{E}(G|S=s, A=a&rsquo;)$，也就是说，是否存在一个行动$a&rsquo;$使得$Q(s, a&rsquo;) &gt; V(s)$。如果存在这样的行动，那么我们就可以把当前状态下的策略改进为$\pi&rsquo;(s)=a&rsquo;$, 也就是说，在状态为$s$的时候，不再按照之前的策略$\pi(s)$来选择行动，而是按照新的策略$\pi&rsquo;(s)=a&rsquo;$来选择行动：因为采取$a&rsquo;$获得了更多的收益。这种单个状态下的动作改变，其实是更普遍的情况下的一个特例，普遍地，在已知策略$\pi$和状态价值$V _{\pi}(s)$的情况下，我们可以通过计算$Q _{\pi}(s,a)=\mathbb {E}(r _{t&#43;1}&#43; \gamma V _{\pi}(s&rsquo;)|S=s,A=a)=\sum _{r _{t&#43;1},s&rsquo;}p(s&rsquo;,r _{t&#43;1}|s,a)\big (  r _{t&#43;1}&#43; \gamma V _{\pi}(s&rsquo;)\big )$来找到一个行动$a&rsquo;$使得$Q _{\pi}(s,a&rsquo;) &gt; V _{\pi}(s)$，从而把当前状态下的策略改进为$\pi&rsquo;(s)=a&rsquo;$。
+贪心策略：对于任意一个状态$s$，遍历所有可能采取的行动，看看哪种行动的状态-行动价值最高，那么，当后面遇到状态为$s$的时候，就直接采取行动$\pi&rsquo;(s)$。
+$$
+\pi&rsquo;(s) = \arg \max _a Q _{\pi}(s,a) = \arg \max _a \sum _{r _{t&#43;1},s&rsquo;}p(s&rsquo;,r|s,a)\big (  r _{t&#43;1}&#43; \gamma V _{\pi}(s&rsquo;)\big )
+$$">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2024-07-26-rl_2/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2024-07-26-rl_2/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      学习RL(二)
+    </h1>
+    <div class="post-meta"><span title='2024-10-18 00:00:00 +0000 UTC'>2024年10月18日</span>&nbsp;·&nbsp;<span>57 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2024-07-26-RL_2.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#动态规划">动态规划</a>
+      <ul>
+        <li><a href="#策略评估policy-evaluation">策略评估&ndash;Policy Evaluation</a></li>
+        <li><a href="#策略改进policy-improvement">策略改进&ndash;Policy Improvement</a></li>
+        <li><a href="#策略迭代policy-iteration">策略迭代&ndash;Policy Iteration</a></li>
+        <li><a href="#价值迭代value-iteration">价值迭代&ndash;Value Iteration</a></li>
+        <li><a href="#异步动态规划asynchronous-dynamic-programming">异步动态规划&ndash;Asynchronous Dynamic Programming</a></li>
+        <li><a href="#广义策略迭代generalized-policy-iteration">广义策略迭代&ndash;Generalized Policy Iteration</a></li>
+      </ul>
+    </li>
+    <li><a href="#实际案例jacks-car-rental-problem">实际案例：Jack&rsquo;s Car Rental Problem</a>
+      <ul>
+        <li><a href="#行动">行动</a></li>
+        <li><a href="#状态价值">状态价值</a></li>
+        <li><a href="#策略">策略</a></li>
+        <li><a href="#策略评估和策略改进">策略评估和策略改进</a></li>
+        <li><a href="#代码实现过程中遇到的理解问题">代码实现过程中遇到的理解问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#实际案例-赌徒gambler问题">实际案例： 赌徒（Gambler）问题</a>
+      <ul>
+        <li><a href="#代码实现过程中遇到的理解问题-1">代码实现过程中遇到的理解问题</a></li>
+        <li><a href="#外部参考">外部参考</a></li>
+        <li><a href="#学习时间线索">学习时间线索</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="动态规划">动态规划<a hidden class="anchor" aria-hidden="true" href="#动态规划">#</a></h2>
+<p>在环境动力学模型$p(s&rsquo;, r|s, a)$已知的情况下，学习状态价值或者是动作价值。</p>
+<h3 id="策略评估policy-evaluation">策略评估&ndash;Policy Evaluation<a hidden class="anchor" aria-hidden="true" href="#策略评估policy-evaluation">#</a></h3>
+<p><em><strong>讨论的是如何在已知策略的情况下计算状态价值函数，从而得到采用该策略的价值有多大。</strong></em></p>
+<p>在DP当中<em><strong>policy evaluation</strong></em>就是计算状态价值函数，也就做<em><strong>prediction problem</strong></em>。</p>
+<p><img alt="策略评估的迭代计算" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_Ch4_1.png"></p>
+<p>这里讨论的是如何计算状态价值函数，该函数是从初始的状态(不准)迭代计算的，迭代的终止条件是状态价值的更新幅度小于一个预设的阈值$\theta$，也就是说当状态价值函数的更新幅度小于$\theta$的时候，就认为状态价值函数已经收敛了。</p>
+<p>还有一个具体的细节：提到了两种状态价值迭代的方式，一种是维护上一次所有状态价值的数组和当前状态价值的数组，计算当前的状态价值的时候只参考上一个状态的数组，还有一种是直接将上一次的数组某个状态价值更新了，其他状态价值的计算直接用更新了的。后面的讨论默认都是基于第二种方式。</p>
+<p>明显地，想要实现上面的计算过程有一个概率需要知道，那就是状态转移概率$p(s&rsquo;, r|s, a)$，也就是在状态$s$下采取行动$a$之后，转移到状态$s&rsquo;$并且得到奖励$r$的概率，这也是叫做环境模型已知。这个概率在DP当中是已知的，在后续的MC和TD当中是未知的。</p>
+<h3 id="策略改进policy-improvement">策略改进&ndash;Policy Improvement<a hidden class="anchor" aria-hidden="true" href="#策略改进policy-improvement">#</a></h3>
+<p><em><strong>讨论的是在已有一个策略，且该策略所对应的状态价值已经确定的情况下，如何调整$a=\pi(s)$为$a&rsquo;=\pi&rsquo;(s)$，使得改进了的策略在将来与环境交互中获得更多的奖励。</strong></em></p>
+<p>想法的来源是在状态为<code>s</code>的情况下，我们知道，继续沿用策略$\pi$, 所得到的后续收益就是$V(s)=\mathbb{E}(G|S=s)$。那么，一个问题来了：有没有可能，在状态为$s$的情况下，采取一个不同于$\pi(s)$的行动$a&rsquo;$, 从而得到一个更大的收益$\mathbb{E}(G|S=s, A=a&rsquo;)$，也就是说，是否存在一个行动$a&rsquo;$使得$Q(s, a&rsquo;) &gt; V(s)$。如果存在这样的行动，那么我们就可以把当前状态下的策略改进为$\pi&rsquo;(s)=a&rsquo;$, 也就是说，在状态为$s$的时候，不再按照之前的策略$\pi(s)$来选择行动，而是按照新的策略$\pi&rsquo;(s)=a&rsquo;$来选择行动：因为采取$a&rsquo;$获得了更多的收益。这种单个状态下的动作改变，其实是更普遍的情况下的一个特例，普遍地，在已知策略$\pi$和状态价值$V _{\pi}(s)$的情况下，我们可以通过计算$Q _{\pi}(s,a)=\mathbb {E}(r _{t+1}+ \gamma V _{\pi}(s&rsquo;)|S=s,A=a)=\sum _{r _{t+1},s&rsquo;}p(s&rsquo;,r _{t+1}|s,a)\big (  r _{t+1}+ \gamma V _{\pi}(s&rsquo;)\big )$来找到一个行动$a&rsquo;$使得$Q _{\pi}(s,a&rsquo;) &gt; V _{\pi}(s)$，从而把当前状态下的策略改进为$\pi&rsquo;(s)=a&rsquo;$。</p>
+<p><em><strong>贪心策略</strong></em>：对于任意一个状态$s$，遍历所有可能采取的行动，看看哪种行动的状态-行动价值最高，那么，当后面遇到状态为$s$的时候，就直接采取行动$\pi&rsquo;(s)$。
+$$
+\pi&rsquo;(s) = \arg \max _a Q _{\pi}(s,a) = \arg \max _a \sum _{r _{t+1},s&rsquo;}p(s&rsquo;,r|s,a)\big (  r _{t+1}+ \gamma V _{\pi}(s&rsquo;)\big )
+$$</p>
+<p>之所以叫做贪心策略，是因为策略的选择还是基于没有变化的价值函数$V(s)$，但是，真实的情况是，当策略发生了变化，对于环境的影响也会发生变化，具体体现在$p(s&rsquo;,r|s,\pi(s))\neq p(s&rsquo;,r|s, \pi&rsquo;(s))$产生变化，之前基于旧策略$\pi$的评估已经过时。</p>
+<p>书中4.2节是一个很重要的转折，将我们从确定策略得到的有用结论，推广到更具一般性的stochastic策略的情况，后续的章节都是基于这个转折点来展开的。强烈推荐好好研读这部分内容。</p>
+<h3 id="策略迭代policy-iteration">策略迭代&ndash;Policy Iteration<a hidden class="anchor" aria-hidden="true" href="#策略迭代policy-iteration">#</a></h3>
+<p><em><strong><a href="/posts/2024-07-26-RL_2/#42-%E7%AD%96%E7%95%A5%E6%94%B9%E8%BF%9Bpolicy-improvement">4.2 策略改进</a>中，使用的是基于旧策略$\pi$的评估函数$V_{\pi}(s)$对对策略进行改进；能否将更新了策略放入环境中，使得可以计算出该更新策略的最新评估函数$V_{\pi&rsquo;}(s)$,然后基于新的评估函数继续提升策略。</strong></em></p>
+<p><img alt="寻找最优策略的迭代算法" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_policy_iteration.png"></p>
+<ul>
+<li>给定策略$\pi$和初始化的状态价值函数$V(s)$，对于每一个状态$s$，按照上面的迭代计算方法来更新状态价值函数，直到状态价值函数收敛。</li>
+<li>利用价值函数提升策略，得到新的策略$\pi&rsquo;$。</li>
+<li>做判断：如果所有的$s$, $\pi(s)=\pi&rsquo;(s)$，说明策略稳定，找到最优贪心策略$\pi_*$，算法结束；如果存在某个状态$s$使得$\pi(s)\neq \pi&rsquo;(s)$，说明策略不稳定，继续回到步骤2进行下一轮的迭代。这里，对于确定性的策略来说，很容易比对$\pi$和$\pi&rsquo;$。但是，对于不确定性的策略，需要比对$\pi(s)$和$\pi&rsquo;(s)$的概率分布函数是否一致。</li>
+</ul>
+<p><em><strong>上图的两个关键是：在Policy Evaluation阶段，$V(s)$利用当前策略更新，在Policy Improvement阶段，利用更新的 $V(s)$ 去寻找使得当前行动价值最大的行动。</strong></em></p>
+<h3 id="价值迭代value-iteration">价值迭代&ndash;Value Iteration<a hidden class="anchor" aria-hidden="true" href="#价值迭代value-iteration">#</a></h3>
+<p>JCR的例子的实现过程，是将策略评估和策略改进分开进行的，具体地讲，就是在策略评估阶段，需要针对每个状态，在给定的策略下，做Bellman计算得到新状态价值，然后拿着这个$V_{k+1}(s)$给到策略改进阶段，在这个阶段当中，针对每个状态，遍历所有的可能行动，计算得到一组行动价值$Q_{\pi}(s,a)$，然后选择最大的行动价值，替换掉当前状态对应的行动。完成上述的一个循环过程，是很耗时间的。</p>
+<p>价值迭代解决的是如何提高上述两个阶段的效率，以达到一个更快找到最优策略的目的。</p>
+<p><em><strong>思路就是在策略评估阶段，先不要着急根据当前的策略去更新状态价值，而是遍历一下所有的行动，找到在当前状态下使得行动价值最大化的那个行动，直接替换该状态的行动，根据这个行动做Bellman的计算更新状态价值，最终循环这个过程直到状态价值变化很小达到收敛。</strong></em></p>
+<p><img alt="价值迭代算法流程" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/value_iteration.png"></p>
+<h3 id="异步动态规划asynchronous-dynamic-programming">异步动态规划&ndash;Asynchronous Dynamic Programming<a hidden class="anchor" aria-hidden="true" href="#异步动态规划asynchronous-dynamic-programming">#</a></h3>
+<p>这部分着重讲到了当面对现实问题的时候，状态的数量很庞大，可能采取的动作也很庞大，在这样的情况下，就算使用状态迭代的方法，也会造成很重的计算负担，实时性很差。异步动态规划可以解决这个问题。在计算的时候，可以选择性地保留一些状态，对这些状态进行迭代。
+这部分并没有说具体的相关算法，但是提到了agent可以根据自己的经验，有选择地对某些状态进行迭代更新。后续应该会有相关的算法。</p>
+<h3 id="广义策略迭代generalized-policy-iteration">广义策略迭代&ndash;Generalized Policy Iteration<a hidden class="anchor" aria-hidden="true" href="#广义策略迭代generalized-policy-iteration">#</a></h3>
+<p>是一个泛指，指代策略评估(Policy Evaluation)和策略改进(Policy Improvement)的交互过程。可以是顺序进行，也可以是融合在一起进行。</p>
+<p>对立性：策略评估是认知的过程，即对当前的策略进行“客观”的分析，通过状态价值函数体现出来；策略改进，是打破策略评估的结果，在现有的策略框架下采取其以外的行动重新构建一个新的策略框架，这个时候，策略评估就需要针对新的策略进行重新分析。
+所以说，对立体现在策略评估想要维护当前的现状，而策略改进想要打破现状，追求更高的状态价值。</p>
+<p>合作性：没有策略评估，策略改进是没有依据的，因为策略评估给出了当前的状态价值，相当于给出了参考。没有策略改进，策略评估和现实世界距离太远，评估结果根本体现不出来现实世界的意义。</p>
+<p>正如作者解释下面这张图，上面的策略评估这条线，代表为了找到真实的状态价值函数而做出的努力，下面的策略改进这条线，为了找到使得状态价值函数最大化的策略而做出的努力，两条线在不同的方向上面发展，最后发现各自做出的努力所取得的进展很小($\Delta &lt; \epsilon$)的时候，就当作两条线相交，此时策略最优，状态价值函数最客观。</p>
+<p>到这里，我突然想起来有人提过，强化学习就像一个自动控制系统当中的PID控制器，先通过反馈得到期望和状态的差，然后采取行动改变执行器的输出，接着反馈发生变化，再计算新的期望和状态的差(通常情况下，这个差会变小，假设期望值不变)。</p>
+<p><img alt="Two Lines" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/GPI_principle.png"></p>
+<h2 id="实际案例jacks-car-rental-problem">实际案例：Jack&rsquo;s Car Rental Problem<a hidden class="anchor" aria-hidden="true" href="#实际案例jacks-car-rental-problem">#</a></h2>
+<p><a href="https://github.com/warden2018/myRL/blob/main/Sutton_book/jack_car_rental.py">代码实现</a></p>
+<p>研究如何运营A和B两地的车辆，首先需要实验当A和B之间不转运车辆的情况下，A和B保留车数量和收益的关系。</p>
+<p><em><strong>这个例子非常好地帮我我们理解了遇到一个问题，如何抽象状态，抽象行动，构建策略和寻找到最优的策略。</strong></em></p>
+<h3 id="行动">行动<a hidden class="anchor" aria-hidden="true" href="#行动">#</a></h3>
+<p>为了应用动态规划的方法，需要设定行动和状态，这里的行动是转运车辆的数量，描述为如下的形式：
+假设从A到B转运车辆的数量设定为 $x$, 当$x &gt; 0$表示运送$x$辆车从A到B，当$x &lt; 0$表示运送$-x$辆车从B到A。</p>
+<h3 id="状态价值">状态价值<a hidden class="anchor" aria-hidden="true" href="#状态价值">#</a></h3>
+<p>可以想象成一个二维的地图，y轴上面是A地的车辆数量分布，x轴上面是B地的车辆数量分布，z轴是$(x, y)$的高度，就是该状态下的收益或者价值(value) 参见下面的热力图的最后一张子图。
+<code>updateStateValues</code>函数利用给定的行动遍历当前状态进行了Bellman方程的应用计算得到新的状态价值。</p>
+<h3 id="策略">策略<a hidden class="anchor" aria-hidden="true" href="#策略">#</a></h3>
+<p>策略可以想象成一个二维地图，x轴上面是A地的车辆数量分布，y轴上面是B地的车辆数量分布，z轴代表行动当中的某一个取值。</p>
+<h3 id="策略评估和策略改进">策略评估和策略改进<a hidden class="anchor" aria-hidden="true" href="#策略评估和策略改进">#</a></h3>
+<p>初始的策略可以选择是到了晚上不移动任何车辆，然后在状态上遍历所有可能的行动来更新状态收益，从状态收益当中选择一个最大的，从而对应的那个行动就变为该状态下的行动，从而完成对当前状态的策略改进，这里采用了贪心的改进策略，后续应该会遇到更加合理的改进方法。</p>
+<p><code>numberofMoving</code>这个二维数组存储了最新的策略。</p>
+<p>Poisson分布: 在一个采样间隔里面，一个随机事件发生的次数有一个期望值 $\lambda$，那么，当事件在该采样周期内发生了 $n$ 次的概率为：</p>
+<p>$$
+P(\lambda, n) = \frac{\lambda^n}{n!}e^{-\lambda}
+$$</p>
+<h3 id="代码实现过程中遇到的理解问题">代码实现过程中遇到的理解问题<a hidden class="anchor" aria-hidden="true" href="#代码实现过程中遇到的理解问题">#</a></h3>
+<ol>
+<li>策略理解不够深入，没有创建策略的二维数组来存储策略。</li>
+<li><em><strong>策略的评估没有做</strong></em>从初始的策略和状态直接进行策略改进，查看输出结果不对。&ndash; 应该先做好策略评估，也就是遍历所有状态，按照初始的策略进行迭代，得到在该策略下的状态价值函数，在这里就是二维的数组<code>stateValues</code>,然后拿着这个更新了的数组来找到最优的行动。</li>
+<li>跟<code>gridworld</code>相比，这次的不确定的是策略，具体来说就是当处在某一个状态，例如A处存留10辆车，B处存留7辆车，到了晚上应该从A到B运输多少量车，是需要尝试的，通过不同的尝试之后，就得到第二天不同的A和B的留存车辆状态，通过策略评估得到状态价值函数，从状态价值函数找到最优的行动。</li>
+<li>在更新状态价值的函数当中<code>updateStateValues</code>, 这个函数关心的问题是从给定状态$s$转移到新状态$s&rsquo;$（有很多种可能性，例如A点出租了2台车，有3台车归还拥有一个概率$P$, A点出租了5台车有6台车归还拥有不同的概率$P&rsquo;$,但是都造成到了晚上A点拥有相同的剩余车数量，像这种情况需要对泊松分布的高概率事件数量进行遍历，把造成晚上都是某个数量车的所有情况的概率加权考虑进去。这个泊松分布的高概率事件数量如何定义？从二维分布图上，可以指定一个高于0的水平直线，高度是$\epsilon=0.01$,代表了接车或者还车数量为n的事件发生概率低于0.01的n统统排除在外，只考虑比其发生概率更高的n），这个转移是通过行动$a$来实现的，所以在这个函数当中，需要传入行动$a$，然后根据行动$a$来计算状态价值的更新。</li>
+<li>还是在<code>updateStateValues</code>函数当中，当天的借车还车数量是很多种可能性的，$P(s&rsquo;, r|s, a)$，仔细看这个条件概率里面的$a$是确定的，也就是前一天晚上的挪车成本在第二天早上就确定了，不确定的部分是第二天一整天下来的借车数量&ndash;利用概率对这部分的收益求平均值。所以<code>updateStateValues</code>函数当中的<code>reward</code>不应该按照下面的计算方法加入到概率的加权求和。
+<code>reward = (rentalNumA + rentalNumB) * CONST_SINGLE_REWARD - abs(action) * CONST_MOVING_COST</code></li>
+</ol>
+<p>而是应该
+<code>reward = (rentalNumA + rentalNumB) * CONST_SINGLE_REWARD</code>
+最后再把前一天晚上的成本加入到里面去。</p>
+<p>再来把<code>Bellman equation</code>列在这里, 公式中$a$是确定的，所以采取行动的成本就确定了，但是第二天的白天状态切换的过程是随机的，满足泊松分布，这部分的收益是需要求期望的。</p>
+<p>$$
+v_{\pi}(s) = \sum_{a} \pi(a|s) \sum_{s&rsquo;,r} P(s&rsquo;, r|s, a) [r + \gamma v_{\pi}(s&rsquo;)]
+$$</p>
+<p><img alt="Jack&rsquo;s Car Rental Problem" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/JCR.png"></p>
+<p>Exercise 4.5，Jack的员工可以下班帮忙开车和停车场空间限制场景加进来。</p>
+<p>需要改动的地方在于价值函数，也就是<code>updateStateValues</code>当中。</p>
+<p>最终的计算结果如下：
+<img alt="Jack&rsquo;s Car Rental Problem" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/JCR_additional.png"></p>
+<h2 id="实际案例-赌徒gambler问题">实际案例： 赌徒（Gambler）问题<a hidden class="anchor" aria-hidden="true" href="#实际案例-赌徒gambler问题">#</a></h2>
+<p>具体的问题描述就不在这里赘述了。下面记录一下实现代码过程中遇到的问题。</p>
+<h3 id="代码实现过程中遇到的理解问题-1">代码实现过程中遇到的理解问题<a hidden class="anchor" aria-hidden="true" href="#代码实现过程中遇到的理解问题-1">#</a></h3>
+<ol>
+<li>价值迭代最核心的点是在某一个状态$s$下，直接遍历所有的actions, 计算出一组$Q(s,a)$, 在这组数当中找到最大的那个，对应的$a$变为$\pi(s)$，并且需要随时将更大的$Q(s,a)$替换掉当前的状态价值函数$V(s)$。这里需要注意，可能在尚未找到最优动作之前，$V(s)$已经做了若干次的更新。</li>
+<li><code>updateStateValue</code>函数需要根据<code>Bellman</code>方程来更新状态价值，我最开始的实现错误地将<code>Reward</code>设置为1，这样造成的结果是计算出很大的$v(s)$。</li>
+<li>最后计算出来的策略结果和书中有出入，作者提到了最优解是不唯一的，我仔细看了最后一次迭代的中间结果，发现采取两个不同的行动，对应计算出来的状态价值差距特别小，在小数点后10位了，所以这种情况下，其实选择任意一个都是最优的。</li>
+</ol>
+<p>上面的代码运行结束，可视化得到价值迭代过程和最优策略：
+<img alt="Gambler&rsquo;s Problem Result" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_gambler.png"></p>
+<h3 id="外部参考">外部参考<a hidden class="anchor" aria-hidden="true" href="#外部参考">#</a></h3>
+<p>最终的结果展示采用热力图的形式，使用了<code>seaborn</code>库，参考了这个链接：
+<a href="https://seaborn.pydata.org/examples/many_pairwise_correlations.html">https://seaborn.pydata.org/examples/many_pairwise_correlations.html</a></p>
+<h3 id="学习时间线索">学习时间线索<a hidden class="anchor" aria-hidden="true" href="#学习时间线索">#</a></h3>
+<ul>
+<li>
+<p><strong>2024年10月</strong></p>
+<ul>
+<li>读Sutton&rsquo;s Book 第四章节</li>
+<li>做了一些笔记，试图理解其中的概念。</li>
+</ul>
+</li>
+<li>
+<p><strong>2025年1月</strong></p>
+<ul>
+<li>自己实现Jack&rsquo;s Car Rental 问题</li>
+<li>暴露出来了[代码实现过程中遇到的理解问题](### 代码实现过程中遇到的理解问题)</li>
+</ul>
+</li>
+<li>
+<p><strong>2025年2月</strong></p>
+<ul>
+<li>春节回来完善JCR</li>
+<li>核对结果和画图展示</li>
+</ul>
+</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2025-01-08-2024_summary/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>2024总结</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2024-09-06-book-the-gardener-and-the-carpenter/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>《园丁与木匠》</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

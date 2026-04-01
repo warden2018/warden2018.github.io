@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>RL on Yang&#39;s Blog</title>
+    <link>http://localhost:1313/categories/rl/</link>
+    <description>Recent content in RL on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Mon, 16 Mar 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/rl/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>学习RL(六)</title>
+      <link>http://localhost:1313/posts/2026-03-16-rl_6/</link>
+      <pubDate>Mon, 16 Mar 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-03-16-rl_6/</guid>
+      <description>&lt;h2 id=&#34;ddpg与td3连续动作空间的深度确定性策略梯度&#34;&gt;DDPG与TD3：连续动作空间的深度确定性策略梯度&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;a href=&#34;https://spinningup.openai.com/en/latest/algorithms/ddpg.html&#34;&gt;Open AI Spinning Up - DDPG&lt;/a&gt; - DDPG（Deep Deterministic Policy Gradient）
+Deep Deterministic Policy Gradient (DDPG) is an algorithm which concurrently learns a Q-function and a policy. It uses off-policy data and the Bellman equation to learn the Q-function, and uses the Q-function to learn the policy.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;本文记录我在学习DDPG（Deep Deterministic Policy Gradient）和TD3（Twin Delayed DDPG）的过程，梳理清楚他们产生的背景，核心思想，特点以及我在实现过程中遇到的问题记录和解决。&lt;/p&gt;
+&lt;h2 id=&#34;1-背景与动机&#34;&gt;1. 背景与动机&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2025/06/27/2025-06-27-RL_4/&#34;&gt;DQN&lt;/a&gt;在离散动作空间表现出色。然而，在许多实际控制任务中（如机器人控制、自动驾驶等），动作空间是连续的。DQN无法计算所有的$Q(s,a)$,代价太大。随着动作空间维度的提升，离散化动作空间带来的成本增加呈指数级别。&lt;/p&gt;
+&lt;p&gt;DDPG正是为解决连续动作空间控制问题而设计的。&lt;/p&gt;
+&lt;h2 id=&#34;2-ddpg核心思想&#34;&gt;2. DDPG核心思想&lt;/h2&gt;
+&lt;p&gt;参考&lt;a href=&#34;https://warden2018.github.io/2026-01-15-rl_5/&#34;&gt;Policy Gradient&lt;/a&gt;和&lt;a href=&#34;https://warden2018.github.io/2026/01/15/2026-01-15-RL_6/&#34;&gt;PPO&lt;/a&gt;，DDPG和TD3想要通过梯度下降的方法对Policy做优化(调节$\theta$)，在训练结束的时候，具有一个最优化的$\theta$，使得$Q(s,a)$$\big(a=\mu_\theta(s)\big )$最大化，还要借鉴DQN当中使用到的&lt;em&gt;&lt;strong&gt;replay buffer&lt;/strong&gt;&lt;/em&gt;: $\mathcal D$和&lt;em&gt;&lt;strong&gt;target network&lt;/strong&gt;&lt;/em&gt;等技术，来提升训练的稳定性和效率。DQN通过Q网络&lt;sup id=&#34;fnref:1&#34;&gt;&lt;a href=&#34;#fn:1&#34; class=&#34;footnote-ref&#34; role=&#34;doc-noteref&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;和target_Q网络&lt;sup id=&#34;fnref:2&#34;&gt;&lt;a href=&#34;#fn:2&#34; class=&#34;footnote-ref&#34; role=&#34;doc-noteref&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;分别近似$Q^\star(s,a)$和$Q^\star(s&amp;rsquo;,a&amp;rsquo;)$，&lt;/p&gt;
+&lt;p&gt;根据Bellman Optimality Equation:&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(五)</title>
+      <link>http://localhost:1313/posts/2026-01-15-rl_5/</link>
+      <pubDate>Thu, 15 Jan 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-01-15-rl_5/</guid>
+      <description>&lt;h2 id=&#34;积累奖励状态价值对策略的梯度与环境动力学无关&#34;&gt;积累奖励(状态价值)对策略的梯度与环境动力学无关&lt;/h2&gt;
+&lt;p&gt;在写两个算法之后，再明确一下基于优化策略梯度的核心思想。在&lt;a href=&#34;https://warden2018.github.io/2026-01-15-rl_5/&#34;&gt;RL_5&lt;/a&gt;中推导了策略梯度是一个期望，具体形式如下：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\nabla _\theta J(\theta) = \mathbb{E} _{a \sim \pi _\theta, s \sim d _{\theta}} \sum _{t=0}^{T} A^{\pi _{\theta}}(s_t,a_t)\nabla _\theta \ln \pi _{\theta}(a_t|s_t)
+\label{eq1}\tag{1}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\begin{aligned}
+\nabla _{\theta} J(\theta) &amp;amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} A^{\pi}(s,a) \nabla _{\theta} \pi(a|s) \\
+&amp;amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} \pi(a|s)A^{\pi}(s,a) \frac {\nabla _{\theta} \pi(a|s)}{\pi(a|s)} \\
+&amp;amp;= \mathbb{E} _{s \sim d _{\theta},a \sim \pi} A^\pi(s,a) \nabla _{\theta} \ln \pi(a|s)
+\end{aligned}
+\label{eq2}\tag{2}
+\end{equation}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(三)</title>
+      <link>http://localhost:1313/posts/2025-06-27-rl_3/</link>
+      <pubDate>Fri, 27 Jun 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-06-27-rl_3/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Learning&lt;/strong&gt;&lt;/em&gt;就是通过迭代的方法找到更接近真实值的手段。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;蒙特卡洛方法&#34;&gt;蒙特卡洛方法&lt;/h2&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;当研究的问题动态模型未知的时候，怎么做策略估计？怎么做策略的改进？&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;在实际应用中，经常遇到模型未知的情况，无法像上一章节讲的，通过&lt;em&gt;&lt;strong&gt;Bellman&lt;/strong&gt;&lt;/em&gt;公式计算状态价值是根据模型（状态传递概率$p(s&amp;rsquo;,r|s,a)$）得到的，但是实际应用中经常遇到没有这样的概率可以依赖。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;思路就是既然MDP利用环境状态传递概率(&lt;em&gt;&lt;strong&gt;State Transition Probability&lt;/strong&gt;&lt;/em&gt;)$p(s&amp;rsquo;,r|s,a)$来加权计算期望，在不知道这个概率的情况下，能否利用多次采集某状态出现的时候，环境给出的奖励&lt;em&gt;&lt;strong&gt;Reward&lt;/strong&gt;&lt;/em&gt;来平均计算，作为状态价值。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;解法就是通过实验，多次执行&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;，在每次的循环中，记录特定状态出现的次数以及循环结束之后所获得的奖励，最后依据大数定律，对积累起来的奖励求平均值，就当作该状态的价值。如果我们事先知道所有的可能状态（在该特定的policy下面，应该可以确定出来），那么就维护一个数组，存储每一种状态的上面的信息，最后所有状态的价值都计算出来就意味着策略评估完成了。
+但是问题来了：如果一个&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;持续很长时间，或者就无法结束，那么，蒙特卡洛方法这种依赖&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;结束才可以获得状态价值的方法就无法应用，需要找到替代的方法来近似。
+TD-learning就解决了这个问题。基于TD-Learning就衍生出一系列的方法解决这类问题。&lt;/p&gt;
+&lt;h2 id=&#34;mc-policy-evaluation-and-control&#34;&gt;MC Policy Evaluation and Control&lt;/h2&gt;
+&lt;p&gt;$$G_t=R_{t+1} + \gamma R_{t+2}+ \gamma^2 R_{t+3} \cdots + \gamma^{T-1} R_{T}$$
+$$v_\pi(s)=\mathbb{E}_\pi(G_t|S_t=s)$$&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;需要循环多次&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;, 每次&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;开始之后，每一次遇到感兴趣的$s$，记录$N(s)=N(s)+1$，并且把&lt;em&gt;&lt;strong&gt;Return&lt;/strong&gt;&lt;/em&gt;加进来：$G(\boldsymbol s,a)=G(\boldsymbol s,a)+r$&lt;/li&gt;
+&lt;li&gt;完成当前的&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;后，计算$Q(\boldsymbol s,a)=G(\boldsymbol s,a)/N(\boldsymbol s,a)$ -&amp;gt;类似于累加Reward的过程&lt;/li&gt;
+&lt;li&gt;然后遍历$a$，更新策略：$\pi(s)=argmax_aQ(\boldsymbol s, a)$&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Monte Carlo ES&lt;/strong&gt;&lt;/em&gt;，是指每一个&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;起始的状态选择是随机的，不能固定，避免有些状态永远无法被访问到。下图是书中的算法流程。&lt;/p&gt;
+&lt;p&gt;这部分也叫做&lt;em&gt;&lt;strong&gt;MC Policy Improvement&lt;/strong&gt;&lt;/em&gt;。
+从给定的$\pi_0$开始，$E$代表策略估计（&lt;em&gt;&lt;strong&gt;Policy Estimation&lt;/strong&gt;&lt;/em&gt;），得到动作价值函数$Q_{\pi_0}$，采用贪心算法（&lt;em&gt;&lt;strong&gt;greedy&lt;/strong&gt;&lt;/em&gt;）找到使得$Q_\pi(\boldsymbol s, a)$最大的&lt;em&gt;&lt;strong&gt;action&lt;/strong&gt;&lt;/em&gt;: $\pi_1(\boldsymbol s) \leftarrow \arg max_{a}Q_{\pi_0}(\boldsymbol s, a)$&lt;/p&gt;
+&lt;p&gt;$$
+\pi_0 \xrightarrow{\text{E}}Q_{\pi_0}\xrightarrow{\text{I}}\pi_1\xrightarrow{\text{I}}\pi_2\cdots
+\xrightarrow{\text{I}}\pi_*\xrightarrow{\text{E}}Q_{\pi_ *}
+$$&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2025-06-27-rl_3/&#34;&gt;参看4.6 广义策略迭代(Generalized Policy Iteration)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;GDI示意图&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_GDI.png&#34;&gt;
+&lt;img alt=&#34;Monte Carlo ES&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_Monte_Carlo_ES.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;on-policy-and-off-policy&#34;&gt;On-Policy and Off-Policy&lt;/h2&gt;
+&lt;p&gt;在学习Q值的过程中，我们会遇到两种情况：&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(四)</title>
+      <link>http://localhost:1313/posts/2025-06-09-rl_4/</link>
+      <pubDate>Mon, 09 Jun 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-06-09-rl_4/</guid>
+      <description>&lt;h2 id=&#34;更新记录&#34;&gt;更新记录&lt;/h2&gt;
+&lt;p&gt;2025-12-15：从策略下的系统演进路径$\tau$推导PG为什么不需要对环境迁移概率求导$p(\boldsymbol s_{t},r|\boldsymbol s_{t-1},\boldsymbol a_{t-1})$从而&lt;a href=&#34;#4-baseline%E7%9A%84%E5%BC%95%E5%85%A5&#34;&gt;引入baseline&lt;/a&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;1-为什么要有policy-gradient&#34;&gt;1. 为什么要有&lt;em&gt;&lt;strong&gt;Policy Gradient&lt;/strong&gt;&lt;/em&gt;&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2025-06-27-rl_3/&#34;&gt;学习RL(三)&lt;/a&gt;当中提到，相比策略评估和策略迭代分开进行的方法，&lt;em&gt;&lt;strong&gt;GPI&lt;/strong&gt;&lt;/em&gt;已经有了进步，能够在策略评估的阶段就先把&lt;em&gt;&lt;strong&gt;actions&lt;/strong&gt;&lt;/em&gt;: $\mathcal{A}$(离散的)遍历一遍，找到使得&lt;strong&gt;action-value&lt;/strong&gt;$:Q_\pi(s,a)$ （为了把概念表达清晰，这里我想纠正我之前的blog当中对&lt;strong&gt;action-value&lt;/strong&gt;采用的符号：$q(s,a)$）最大的那个$a$ : $\arg\max_{a \in \mathcal{A}} Q_\pi(s, a)$。之前在写blog的时候，脑子里面一直就藏着一个大问号：如果是控制电机的转速这种连续的场景，该怎么遍历 $\mathcal{A}$呢？当时我的想法是将 $\mathcal{A}$分段考虑，但是直到我知道有&lt;em&gt;&lt;strong&gt;Policy Gradient&lt;/strong&gt;&lt;/em&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;2-什么是函数的gradient&#34;&gt;2. 什么是函数的&lt;em&gt;&lt;strong&gt;Gradient&lt;/strong&gt;&lt;/em&gt;&lt;/h2&gt;
+&lt;p&gt;梯度一般是在函数自变量空间当中的一个向量（假设函数的自变量是一个向量），坐标系统是在一个垂直正交的系统中，$\nabla$就是一个在坐标系统中有方向有大小的向量，方向代表了自变量沿着该方向移动微小距离$dr$，函数变化最大。$df=||f(\boldsymbol x + dr\cdot \nabla f(\boldsymbol x))-f(\boldsymbol x)|| \geq || f(\boldsymbol x + dr\cdot \boldsymbol \alpha)-f(\boldsymbol x)|| \boldsymbol (\alpha \text{ is any vector in } \boldsymbol X$)。
+&lt;img alt=&#34;梯度示意图&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/Gradient.png&#34;&gt;
+&lt;em&gt;图1: 梯度方向示意。$\nabla f(\boldsymbol x)$ 指向函数值变化最快的方向。&lt;/em&gt;&lt;/p&gt;
+&lt;h2 id=&#34;3-从价值函数推导&#34;&gt;3. 从价值函数推导&lt;/h2&gt;
+&lt;p&gt;$$
+J(\theta)
+= \sum_{s \in \mathcal{S}} d_\pi(s) V_\pi(s)
+= \sum_{s \in \mathcal{S}} d_\pi(s) \sum_{a \in \mathcal{A}} \pi_\theta(a \vert s) Q_\pi(s, a)
+\tag{1}
+$$
+对比之前的依据&lt;strong&gt;action-value&lt;/strong&gt;$:Q_\pi(s,a)$寻找$s$上的$a_{best}$，本方法依旧会使用$:Q_\pi(s,a)$，但是并不在每次的迭代中（&lt;em&gt;&lt;strong&gt;GDI&lt;/strong&gt;&lt;/em&gt;）去直接做action的选择，而是参与到对（1）的梯度计算当中。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(二)</title>
+      <link>http://localhost:1313/posts/2024-07-26-rl_2/</link>
+      <pubDate>Fri, 18 Oct 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-26-rl_2/</guid>
+      <description>&lt;h2 id=&#34;动态规划&#34;&gt;动态规划&lt;/h2&gt;
+&lt;p&gt;在环境动力学模型$p(s&amp;rsquo;, r|s, a)$已知的情况下，学习状态价值或者是动作价值。&lt;/p&gt;
+&lt;h3 id=&#34;策略评估policy-evaluation&#34;&gt;策略评估&amp;ndash;Policy Evaluation&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;讨论的是如何在已知策略的情况下计算状态价值函数，从而得到采用该策略的价值有多大。&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;在DP当中&lt;em&gt;&lt;strong&gt;policy evaluation&lt;/strong&gt;&lt;/em&gt;就是计算状态价值函数，也就做&lt;em&gt;&lt;strong&gt;prediction problem&lt;/strong&gt;&lt;/em&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;策略评估的迭代计算&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_Ch4_1.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;这里讨论的是如何计算状态价值函数，该函数是从初始的状态(不准)迭代计算的，迭代的终止条件是状态价值的更新幅度小于一个预设的阈值$\theta$，也就是说当状态价值函数的更新幅度小于$\theta$的时候，就认为状态价值函数已经收敛了。&lt;/p&gt;
+&lt;p&gt;还有一个具体的细节：提到了两种状态价值迭代的方式，一种是维护上一次所有状态价值的数组和当前状态价值的数组，计算当前的状态价值的时候只参考上一个状态的数组，还有一种是直接将上一次的数组某个状态价值更新了，其他状态价值的计算直接用更新了的。后面的讨论默认都是基于第二种方式。&lt;/p&gt;
+&lt;p&gt;明显地，想要实现上面的计算过程有一个概率需要知道，那就是状态转移概率$p(s&amp;rsquo;, r|s, a)$，也就是在状态$s$下采取行动$a$之后，转移到状态$s&amp;rsquo;$并且得到奖励$r$的概率，这也是叫做环境模型已知。这个概率在DP当中是已知的，在后续的MC和TD当中是未知的。&lt;/p&gt;
+&lt;h3 id=&#34;策略改进policy-improvement&#34;&gt;策略改进&amp;ndash;Policy Improvement&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;讨论的是在已有一个策略，且该策略所对应的状态价值已经确定的情况下，如何调整$a=\pi(s)$为$a&amp;rsquo;=\pi&amp;rsquo;(s)$，使得改进了的策略在将来与环境交互中获得更多的奖励。&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;想法的来源是在状态为&lt;code&gt;s&lt;/code&gt;的情况下，我们知道，继续沿用策略$\pi$, 所得到的后续收益就是$V(s)=\mathbb{E}(G|S=s)$。那么，一个问题来了：有没有可能，在状态为$s$的情况下，采取一个不同于$\pi(s)$的行动$a&amp;rsquo;$, 从而得到一个更大的收益$\mathbb{E}(G|S=s, A=a&amp;rsquo;)$，也就是说，是否存在一个行动$a&amp;rsquo;$使得$Q(s, a&amp;rsquo;) &amp;gt; V(s)$。如果存在这样的行动，那么我们就可以把当前状态下的策略改进为$\pi&amp;rsquo;(s)=a&amp;rsquo;$, 也就是说，在状态为$s$的时候，不再按照之前的策略$\pi(s)$来选择行动，而是按照新的策略$\pi&amp;rsquo;(s)=a&amp;rsquo;$来选择行动：因为采取$a&amp;rsquo;$获得了更多的收益。这种单个状态下的动作改变，其实是更普遍的情况下的一个特例，普遍地，在已知策略$\pi$和状态价值$V _{\pi}(s)$的情况下，我们可以通过计算$Q _{\pi}(s,a)=\mathbb {E}(r _{t+1}+ \gamma V _{\pi}(s&amp;rsquo;)|S=s,A=a)=\sum _{r _{t+1},s&amp;rsquo;}p(s&amp;rsquo;,r _{t+1}|s,a)\big (  r _{t+1}+ \gamma V _{\pi}(s&amp;rsquo;)\big )$来找到一个行动$a&amp;rsquo;$使得$Q _{\pi}(s,a&amp;rsquo;) &amp;gt; V _{\pi}(s)$，从而把当前状态下的策略改进为$\pi&amp;rsquo;(s)=a&amp;rsquo;$。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;贪心策略&lt;/strong&gt;&lt;/em&gt;：对于任意一个状态$s$，遍历所有可能采取的行动，看看哪种行动的状态-行动价值最高，那么，当后面遇到状态为$s$的时候，就直接采取行动$\pi&amp;rsquo;(s)$。
+$$
+\pi&amp;rsquo;(s) = \arg \max _a Q _{\pi}(s,a) = \arg \max _a \sum _{r _{t+1},s&amp;rsquo;}p(s&amp;rsquo;,r|s,a)\big (  r _{t+1}+ \gamma V _{\pi}(s&amp;rsquo;)\big )
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(一)</title>
+      <link>http://localhost:1313/posts/2024-07-26-rl_1/</link>
+      <pubDate>Fri, 26 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-26-rl_1/</guid>
+      <description>&lt;h2 id=&#34;基础概念&#34;&gt;基础概念&lt;/h2&gt;
+&lt;h3 id=&#34;智能体和环境交互&#34;&gt;智能体和环境交互&lt;/h3&gt;
+&lt;p&gt;&lt;img alt=&#34;Agent与环境交互示意&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_agent_environment.png&#34;&gt;
+&lt;em&gt;图1: Agent 与环境交互的基本结构。Agent 根据当前状态 $s_t$ 选择动作 $a_t$，环境依据状态转移概率 $p(s&amp;rsquo;,r|s,a)$ 返回下一状态 $s_{t+1}$ 和奖励 $r_t$。&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;上面的图展示了RL智能体与环境交互的结构。这个示意图是很广义和普遍的：&lt;em&gt;&lt;strong&gt;action&lt;/strong&gt;&lt;/em&gt;可以是加载在机械臂电机上的控制电压或者是PWM信号，也可以是高级别的决策，例如是否要变道；&lt;em&gt;&lt;strong&gt;state&lt;/strong&gt;&lt;/em&gt;也比较灵活，可以看作是传感器回传的数据，也可以看作是在空间中特定符号描述的物体信息。&lt;/p&gt;
+&lt;h3 id=&#34;奖励&#34;&gt;奖励&lt;/h3&gt;
+&lt;p&gt;奖励这个概念我认为比较模糊，或者说它的来源可以是人为设计，也可以是环境给出。在机器人领域，奖励稀疏是一个常见问题，没有奖励的情况下，智能体很难学到真实的状态价值或者动作价值，那么策略的优化就很难进行下去。针对这个问题，后续专门讨论。&lt;/p&gt;
+&lt;h3 id=&#34;策略&#34;&gt;策略&lt;/h3&gt;
+&lt;p&gt;策略$\pi$是智能体在状态$s$下对动作$a$的选择，或者是一个从状态到动作的映射关系。它可以是一个确定性的函数，例如DDPG和TD3那样输出准确的动作，也可以是一个随机的概率分布，例如PPO输出的是动作的高斯分布期望，可以利用这个期望生成一个分布，然后从分布中采样出来一个具体的动作。&lt;/p&gt;
+&lt;h3 id=&#34;状态价值vs&#34;&gt;状态价值$V(s)$&lt;/h3&gt;
+&lt;p&gt;系统在状态$s$下，根据某个策略$\pi$采取行动，在后续和环境交互的过程中，得到的收益$G$的期望。&lt;/p&gt;
+&lt;p&gt;$$
+\begin{aligned}
+&amp;amp; V(s)=\mathbb{E} _{\pi}(G|S=s) \\
+&amp;amp; G=R _{t+1} + \gamma R _{t+2}+ \gamma ^2 R _{t+3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t+k+1}
+\end{aligned}
+$$&lt;/p&gt;
+&lt;h3 id=&#34;行动价值qsa&#34;&gt;行动价值$Q(s,a)$&lt;/h3&gt;
+&lt;p&gt;在状态$s$下，采取行动$a$之后，在后续和环境交互的过程中，得到的收益$G$的期望。
+$$
+\begin{aligned}
+&amp;amp; Q(s,a)=\mathbb{E} _{\pi}(G|S=s,A=a) \\
+&amp;amp; G=R _{t+1} + \gamma R _{t+2}+ \gamma ^2 R _{t+3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t+k+1}
+\end{aligned}
+$$&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

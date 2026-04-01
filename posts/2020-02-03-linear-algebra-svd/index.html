@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>矩阵的奇异值分解 | Yang&#39;s Blog</title>
+<meta name="keywords" content="Linear Algebra">
+<meta name="description" content="
+Besides having a rather simple geometric explanation, the singular value decomposition offers extremely effective techniques for putting linear algebraic ideas into practice.
+
+SVD分解与四个子空间
+任意的线性变换都可以进行奇异值分解(SVD: Singular Value Decomposition)。之前的一篇博客讲的特征值和特征向量都是针对方阵而言的.这里任意形状的矩阵都能够进行SVD变换。给定一个$m \times n$的矩阵$A$，$rank(A)=r$，这里需要特别说明，我们可以在这个矩阵的行空间和列空间内找到$r$个线性无关的基，即使行、列空间的维度有不同。此处是核心：我们能够参考方阵，对它的特征值特征向量的推导过程得到启发，结合这里矩阵不一定是方阵（行、列维度不同的特点），能否在行子空间内找到一组相互正交的单位基向量，这组基向量通过$A$的变换在列空间内“生产”出一组也是相互正交的向量，并且这组向量正好是列空间的一组基。
+$$
+\begin{equation}
+Av_1=\sigma_1u_1, \cdots, Av_r=\sigma_1u_r
+\end{equation}
+\label{eq1}\tag{1}
+$$
+($\ref{eq1}$) 中，$v_i(i=0,1,\cdots,r)$是行空间内的单位向量，且$v_i^T \dot v_j=0 (i \neq j)$，$u_i(i=0,1,\cdots,r)$是列空间内的单位向量（Orthonormal basis），且$u_i^T \dot u_j=0 (i \neq j)$，$\sigma_i(i=0,1,\cdots,r)$是列空间内单位向量的伸缩系数。
+写成矩阵乘法的形式如下：
+$$
+\begin{equation}
+A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&amp;0&amp;\cdots&amp;0\\ 0&amp;\sigma_2&amp;\cdots&amp;0\\ \vdots&amp;\vdots&amp;\vdots&amp;\vdots\\ 0&amp;\cdots&amp;\cdots&amp;\sigma_r\end{bmatrix}
+\end{equation}
+\label{eq2}\tag{2}
+$$">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2020-02-03-linear-algebra-svd/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2020-02-03-linear-algebra-svd/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      矩阵的奇异值分解
+    </h1>
+    <div class="post-meta"><span title='2020-06-22 00:00:00 +0000 UTC'>2020年6月22日</span>&nbsp;·&nbsp;<span>26 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2020-02-03-Linear-Algebra-SVD.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#svd分解与四个子空间">SVD分解与四个子空间</a></li>
+    <li><a href="#矩阵对行空间向量的变换-2025-06-13">矩阵对行空间向量的变换 2025-06-13</a></li>
+    <li><a href="#奇异值分解的几何意义">奇异值分解的几何意义</a>
+      <ul>
+        <li><a href="#总结一下">总结一下</a></li>
+      </ul>
+    </li>
+    <li><a href="#和特征值分解的关系">和特征值分解的关系</a></li>
+    <li><a href="#参考材料">参考材料</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><blockquote>
+<p>Besides having a rather simple geometric explanation, the singular value decomposition offers extremely effective techniques for putting linear algebraic ideas into practice.</p>
+</blockquote>
+<h2 id="svd分解与四个子空间">SVD分解与四个子空间<a hidden class="anchor" aria-hidden="true" href="#svd分解与四个子空间">#</a></h2>
+<p>任意的线性变换都可以进行奇异值分解(SVD: Singular Value Decomposition)。之前的一篇博客讲的特征值和特征向量都是针对方阵而言的.这里任意形状的矩阵都能够进行SVD变换。给定一个$m \times n$的矩阵$A$，$rank(A)=r$，这里需要特别说明，我们可以在这个矩阵的行空间和列空间内找到$r$个线性无关的基，即使行、列空间的维度有不同。此处是核心：我们能够参考方阵，对它的特征值特征向量的推导过程得到启发，结合这里矩阵不一定是方阵（行、列维度不同的特点），能否在行子空间内找到一组相互正交的单位基向量，这组基向量通过$A$的变换在列空间内“生产”出一组也是相互正交的向量，并且这组向量正好是列空间的一组基。</p>
+<p>$$
+\begin{equation}
+Av_1=\sigma_1u_1, \cdots, Av_r=\sigma_1u_r
+\end{equation}
+\label{eq1}\tag{1}
+$$</p>
+<p>($\ref{eq1}$) 中，$v_i(i=0,1,\cdots,r)$是行空间内的单位向量，且$v_i^T \dot v_j=0 (i \neq j)$，$u_i(i=0,1,\cdots,r)$是列空间内的单位向量（Orthonormal basis），且$u_i^T \dot u_j=0 (i \neq j)$，$\sigma_i(i=0,1,\cdots,r)$是列空间内单位向量的伸缩系数。
+写成矩阵乘法的形式如下：</p>
+<p>$$
+\begin{equation}
+A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&amp;0&amp;\cdots&amp;0\\ 0&amp;\sigma_2&amp;\cdots&amp;0\\ \vdots&amp;\vdots&amp;\vdots&amp;\vdots\\ 0&amp;\cdots&amp;\cdots&amp;\sigma_r\end{bmatrix}
+\end{equation}
+\label{eq2}\tag{2}
+$$</p>
+<p>写成更简单的形式是：$AV=U\Lambda$。</p>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/svd_4spaces.png"></p>
+<h2 id="矩阵对行空间向量的变换-2025-06-13">矩阵对行空间向量的变换 2025-06-13<a hidden class="anchor" aria-hidden="true" href="#矩阵对行空间向量的变换-2025-06-13">#</a></h2>
+<p>费这么大的劲把矩阵的最本质的东西提取出来，一定是有目的的：</p>
+<ul>
+<li>
+<p>我们希望了解，任何一个矩阵，它在$\mathbb{R}^n$和$\mathbb{R}^m$两个空间内，具有什么样的结构：具体体现在行空间和列空间内的一组单位正交基：$\boldsymbol v_1, \boldsymbol v_2 \cdots \boldsymbol v_r \text{ in row space}$和$\boldsymbol u_1, \boldsymbol u_2 \cdots \boldsymbol u_r\text{ in colunm space}$，它们的数量和方向决定了这个矩阵对向量的变换能力。</p>
+</li>
+<li>
+<p>我们希望给定任何一个向量：$\boldsymbol x\in \mathbb{R}^n$，能够不用按照矩阵和向量相乘的方法，用人更能够理解的方式把这个向量换坐标系，过程是：</p>
+</li>
+</ul>
+<ol>
+<li>
+<p>$\boldsymbol x$向$\boldsymbol v_1, \boldsymbol v_2 \cdots \boldsymbol v_r$投影，得到在各个方向上的拉伸系数$\alpha_1,\alpha_2 \cdots \alpha_r$</p>
+</li>
+<li>
+<p>因为$\boldsymbol v_1$经过$A$变换之后，得到方向是$\boldsymbol u_1$，长度是$\sigma_1$，所以，$\boldsymbol x$经过$A$变换之后，在$\boldsymbol u_1$方向上的拉伸长度是$\alpha_1\sigma_1$</p>
+</li>
+<li>
+<p>写成矩阵形式：</p>
+</li>
+</ol>
+<p>$$
+\begin{matrix}
+A\boldsymbol x=[\boldsymbol u_1 &amp; \boldsymbol u_2 &amp; \cdots &amp; \boldsymbol u_r]
+\end{matrix}
+\begin{bmatrix}
+\alpha_1\sigma_1 &amp; 0 &amp; \dots &amp; 0 \\
+0       &amp; \alpha_2\sigma_2 &amp; \dots &amp; 0 \\
+\vdots \\
+0 &amp; 0 &amp; \dots &amp; \alpha_r\sigma_r
+\end{bmatrix}
+$$</p>
+<ol start="4">
+<li>所以主要工作量主要是第一步，求投影的拉伸系数。</li>
+</ol>
+<ul>
+<li>矩阵对输入向量的变化，在一些方向上变换较大，在另一些方向变换较小，实际生产生活中，只是去关注变换较大的方向，忽略变换较小的方向：挑选那些较大$\sigma$们，对输入向量只针对这些方向做投影得到的拉伸系数就可以完成变换，节省计算资源，节省时间，达到的效果和全部计算没有显著区别。</li>
+</ul>
+<h2 id="奇异值分解的几何意义">奇异值分解的几何意义<a hidden class="anchor" aria-hidden="true" href="#奇异值分解的几何意义">#</a></h2>
+<p>接上面的矩阵定义$A$，我们看一下$R^n$空间的任意对象$\boldsymbol{x}$是如何变换的。</p>
+<p>$$
+\begin{equation}
+\boldsymbol{x}=x_1\boldsymbol{v_1}+x_2\boldsymbol{v_2}+\cdots+x_n\boldsymbol{v_n}
+\end{equation}
+\tag{3}\label{eq3}
+$$</p>
+<p>($\ref{eq3}$)中，$x_i$是$\boldsymbol{x}$在行空间、零空间的坐标值，其中前$r$个向量是行空间的分量，后面的是零空间的分量。并且$\sum_{1}^{n}{x_i^2} =1$，可以把这个对象想象成在$R^n$内的单位球体。线性变换：</p>
+<p>$$
+\begin{equation}
+A\boldsymbol{x} = x_1A\boldsymbol{v_1}+x_2A\boldsymbol{v_2}+\cdots+x_nA\boldsymbol{v_n} = \sigma_1x_1\boldsymbol{u_1}+\sigma_2x_2\boldsymbol{u_1}+\cdots+\sigma_rx_r\boldsymbol{u_r}
+\end{equation}
+\tag{4}\label{eq4}
+$$</p>
+<p>($\ref{eq4}$)少了后面的$(n-r)$个分量，是因为$A\boldsymbol{v_i}=0,(i=r+1,r+2,\cdots,n)$。
+到这里，我们理解奇异值分解的几何意义就是：矩阵的奇异值分解，是在行空间内找到一组相互垂直的单位向量，这组向量经过矩阵的变换在列空间得到的向量也是相互垂直，观察($\ref{eq4}$)，旧坐标值和奇异值相乘的意义就是在新的基方向上，进行奇异值大小的拉伸操作。更加形象的理解就是，将单位球面变换为超椭球面，这个球面具有r$个半轴，每个半轴对应的奇异值是该半轴伸缩的系数。</p>
+<p>最近在知乎上又看到了<a href="https://www.zhihu.com/people/linghan-cheung">硬核机器学习文章分享</a>的回答，在他的回答中，两组正交基分别就是矩阵行空间、列空间的标准正交基。如果不好记忆的话，我们可以对比矩阵和向量的乘法，$\boldsymbol{x}$向量的维度和矩阵的行向量是一致的，所以 $\boldsymbol{v_i}$ 向量是用来分解给定的向量的，这样我们就很容易得到酉矩阵$U$的列向量是原矩阵列向量的一组标准正交基构成。</p>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/svd_process.png"></p>
+<h3 id="总结一下">总结一下<a hidden class="anchor" aria-hidden="true" href="#总结一下">#</a></h3>
+<p>步骤如下：</p>
+<ul>
+<li>
+<p>给出任意向量$\boldsymbol{x}$</p>
+</li>
+<li>
+<p>矩阵对该向量的变换分解为如下</p>
+</li>
+<li>
+<p>投影$\boldsymbol{x}$到$\boldsymbol{v_i}$，得到投影矢量为$\epsilon_1,\cdots,\epsilon_r$</p>
+</li>
+<li>
+<p>使用$\boldsymbol{V}$旋转行基$\boldsymbol{v_i}$到单位标准正交基$\boldsymbol{I}$</p>
+</li>
+<li>
+<p>使用奇异值拉伸$\boldsymbol{I}$的各个分量</p>
+</li>
+<li>
+<p>使用$\boldsymbol{U}$旋转拉伸后的基向量，得到最终基，变换在该基下的分矢量就是$\epsilon_1,\cdots,\epsilon_r$</p>
+</li>
+</ul>
+<h2 id="和特征值分解的关系">和特征值分解的关系<a hidden class="anchor" aria-hidden="true" href="#和特征值分解的关系">#</a></h2>
+<p>刚才只讨论了矩阵行空间和列空间的向量，那么，剩下的零空间和左零空间的向量难道就放弃了么？并不是这样的，出于考虑问题的完备性，我们写出如下的表达式</p>
+<p>$$
+\begin{equation}
+A=[\boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r}|\boldsymbol{u_{r+1}}\ \boldsymbol{u_{r+2}}\cdots \boldsymbol{u_m}]
+\begin{bmatrix}
+\sigma_1&amp;0&amp;\cdots&amp;0
+\\ 0&amp;\sigma_2&amp;\cdots&amp;0
+\\ \vdots&amp;\vdots&amp;\vdots&amp;\vdots
+\\ 0&amp;\cdots&amp;\cdots&amp;\sigma_r
+\\ 0&amp;\cdots&amp;\cdots&amp;0
+\\ \vdots&amp;\vdots&amp;\vdots&amp;\vdots
+\\ 0&amp;\cdots&amp;\cdots&amp;0
+\end{bmatrix}
+\begin{bmatrix}
+\boldsymbol {v_1^T}
+\\ \boldsymbol{v_2^T}
+\\ \vdots
+\\ \boldsymbol{v_r^T}
+\\ \boldsymbol{v_{r+1}^T}
+\\ \vdots
+\\ \boldsymbol{v_n^T}
+\end{bmatrix}
+\label{eq:5}
+\end{equation}
+$$</p>
+<p>SVD更广泛的意义是将$R^n$（行空间+零空间）内的一组标准正交基和$R^m$（列空间+左零空间）的标准正交基拉进来，形式上完备了，具体矩阵所具有的特性取决于中间对角矩阵中非零奇异值的个数，理想的情况是，当矩阵是一个$n\times n$方阵时，并且具有$n$个特征向量，那么行空间和列空间的维度是一样的，通过SVD分解矩阵得到的$U$中，各列就是该矩阵的特征向量。从这点上，我们可以得到，方阵的特征向量特征值是矩阵SVD分解的特殊情况。</p>
+<h2 id="参考材料">参考材料<a hidden class="anchor" aria-hidden="true" href="#参考材料">#</a></h2>
+<p><a href="http://www.ams.org/publicoutreach/feature-column/fcarc-svd">We Recommend a Singular Value Decomposition</a>	&ldquo;奇异值分解的直观理解&rdquo;</p>
+<p><a href="https://mp.weixin.qq.com/s?__biz=MzA5ODUxOTA5Mg==&amp;mid=211203099&amp;idx=1&amp;sn=c741c2c535a5042a03cd1b3a83a1b654&amp;scene=20#wechat_redirect%20%E5%BC%BA%E5%A4%A7%E7%9A%84%E7%9F%A9%E9%98%B5%E5%A5%87%E5%BC%82%E5%80%BC%E5%88%86%E8%A7%A3%28SVD%29%E5%8F%8A%E5%85%B6%E5%BA%94%E7%94%A8">机器学习中的数学(5)：强大的矩阵奇异值分解(SVD)及其应用</a></p>
+<p><a href="https://www.zhihu.com/question/22218306/answer/88697757">线性变换的矩阵为什么要强调在这组基下?</a></p>
+<p><a href="http://www-users.math.umn.edu/~lerman/math5467/svd.pdf">The SVD of a Matrix</a></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/linear-algebra/">Linear Algebra</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2023-12-01-kalman-filter-theory-1/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2020-01-31-linear-algebra-similarmatrix-eigenvector-eigenvalue/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>相似矩阵和矩阵的特征值特征向量</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

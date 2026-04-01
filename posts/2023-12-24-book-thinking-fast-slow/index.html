@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>《思考，快与慢》 | Yang&#39;s Blog</title>
+<meta name="keywords" content="读书">
+<meta name="description" content="第6章 意料之外与情理之中
+讲系统1如何对发生的事件做判断的，分析了它的工作机理和存在的缺陷
+讲了心理学家乔恩的故事，从第一次的惊喜到第二次的习以为常，因果关系的推导在系统1看来，会因为之前发生了一次小概率事件而把之后再次发生类似事件认为习以为常，我个人认为就是条件概率在第二次采样的时候被系统1无意识地调高了。
+第16章 因果关系比统计学更有说服力
+在16章节当中，列举了出租车逃逸的事例。这个问题是要求我们回答出租车是蓝色而不是绿色的概率是多少。
+我们通过贝叶斯的思想来分析这个问题：
+事件B：出租车是蓝色的； 事件G: 出租车是绿色的；事件S：那个目击证人指认出出租车的颜色是蓝色的。
+因为$P(B)=0.15$, $P(G)=0.85$，这两个概率是先验的，假如现场没有目击证人的任何证词，我们只能根据先验信息来判断肇事出租车是蓝色的概率是0.15。但是现场有目击证人，目击证人的观察也具有一定的不确定性，他能够正确辨认出租车颜色的概率是0.8。其实，作者想要读者思考的是如何根据目击证人的证词和先验概率分布来计算出租车是蓝色的后验概率，这个后验概率是$P(B|S)$，我们可以通过贝叶斯公式来计算：
+$$
+P(B|S)=\frac{P(S|B)P(B)}{P(S)}
+$$
+上面的公式当中，比较容易得到概率数据的项：
+$P(S|B)=0.8$-&gt;当出租车为蓝色时目击证人指认出租车是蓝色的概率，是一个条件概率；
+$P(B)=0.15$-&gt;现场的出租车颜色是蓝色的概率；
+分母的$P(S)$是目击证人指认出租车是蓝色的概率，是一个边缘概率，在之前的卡尔曼滤波器学习笔记（一）当中提到过。如何确定这个概率的数值呢？我们可以通过全概率公式来计算：
+$$
+P(S)=P(S|B)P(B)&#43;P(S|G)P(G)=0.8\times 0.15&#43;0.2\times 0.85=0.29
+$$
+这样，我们就可以计算出$P(B|S)=0.41$。
+得到这个结果的反思：单纯依靠先验概率得到答案0.15，单纯依靠目击证人得到0.8都不是最合理的结果，需要综合两者的信息来判断，当我们依靠贝叶斯公式计算得到后验概率是0.41之后，我们会更信服这样的概率结果。
+在这个问题的讨论中，我和妻子产生了分歧，分歧点在于条件概率的计算是一个除法，除法的分子部分她选择了$P(B)$而不是$P(B)\times P(S|B)$，她认为分母部分已经把这个目击者看到的信息包含进去了，分子是这个城市蓝色汽车出现的概率。
+我的想法是$P(B)$和$P(G)$在这个问题中只是假设(Hypothesis)，这个问题的核心仍然是那个目击者，目击者说他看到蓝车是一个证据(evidence)，他看到蓝车并且假设是蓝车概率是$P(S,B)$，但是也有可能是绿车他说成蓝车，他看到蓝车但是假设是绿车概率是$P(S,G)$， 那么他看到蓝车并且假设也是蓝车的概率是$\frac{P(S,B)}{P(S,B)&#43;P(S,G)}=0.41$ ，也就是这个问题的答案。全程考虑问题的重点是他提出他看到蓝车这个证据的事件需要在所有可能的假设上面做两个事件同时发生的概率求解，然后看看证据所描述的假设占据所有假设上的比率。隐藏的统计学基础比率（Statistical Base Rates）起到的作用就是计算提出证据这个事件和假设真的发生的概率。
+像是线性代数当中的基向量，我们在讨论问题的时候，并不会过度关心那些个基向量，我们关心的是基向量的线性组合，或者说是坐标，例如，飞机在飞行中的位置就是一个大地坐标系统下的向量，在飞机着陆过程中，地面控制系统关心的是飞机的z坐标（代表了当前的高度），如果高度不对会发生坠机事件，和x、y方向的联合速度，代表了水平飞行的朝向，如果朝向不对无法降落到飞机场。这些变量是飞机位置这个总体变量在某些方向上的投影。从概率的角度看，就是证据的提出向基础事件们投影，得到的投影作为新的样本，从样本中选择我们关心的子样本。
+从独立做100次实验的角度来看，让目击者独立重复看100次现场，实验设计85次是绿色出租车，15次是蓝色出租车，他看到蓝色出租车并且汇报是蓝车有12次，他看到绿色出租车并且汇报是蓝色出租车有17次，他总共汇报了29次是蓝车，但是这29次当中真正是蓝车只有12次，那么最终的概率就是12/29。
+作者在这一章节最想强调的事情是：在特殊场景发生的事情，即使是你亲眼看到的，也并不能把这个事件发生的概率提高到1，人们很容易忽略统计学的基础比例，但是如果统计学的基础比例换汤不换药地被描述为因果关系当中的原因，比如还是那个出租车肇事逃逸的问题，**描述为两家公司拥有相同数量的出租车，但是在造成事故的出租车当中，绿色出租车占比为85%。**那么，人们就更容易地接受这样的事实，就会觉得是绿色出租车的可能性变大，降低是蓝色出租车肇事的预期。从而改变了对这个事件的看法。但是从数学的角度，这两种描述都是贝叶斯公式当中的计算素材。作者提到的两个重要的概念分别是：
+
+统计学基础比率（Statistical Base Rates）：在一个特定的群体当中，某个特定的属性的比例，例如，某个城市的出租车当中，蓝色出租车的比例是15%，绿色出租车的比例是85%。普遍受到轻视，当人们手头有和该事件相关的具体信息时，有时候还会完全忘记或者忽略这个比率。
+因果关系基础比率（Causal Base Rates）：在一个特定的群体当中，某个特定的属性的比例，例如，某个城市的出租车当中，蓝色出租车肇事的比例是15%，绿色出租车肇事的比例是85%。因果关系往往被看作是个别事件的信息，人们很容易把这个信息和其他的具体事件结合起来考虑问题。
+
+文章讲到的思维定式，对于大脑中的系统1来说，它的特征之一就是代表了范畴规范和原型范例，这样的规范和范例决定了我们如何看待身边的事物，比如电冰箱，电动车和交通警察，在我们的记忆当中会存储所有这些范畴的事物或者个人相关的一个或者多个“规范的”典型形象，当这些规范具有了社会性的时候，这些典型形象就被称为思维定式。注意，这里是范式的式。
+我们应该如何做？
+
+我认为，在需要做出判断的时候，尽量能够把和当前所遇到的问题相关的名词列举出来，然后把他们做一些组合形成一些描述，然后再思考这些描述是否有普遍的统计学规律，如果有，把这些规律转化为因果关系的基础比率，帮助我们分析当前的这个具体问题。
+任何我们看到听到的事情，都是值得怀疑的，因为从数学的角度来看，这件事情发生都是概率性的，我们看到听到感受到的，只是该事件的某种观测，只要是观测，就会存在偏差，就会不准，即使我们主观感受觉得自己判断得很准。
+不能忽略基础比率，但是更不能忽略观测。
+
+第17章 所有表现都会回归平均值
+成功=天赋&#43;运气
+从飞行员特技表演到高尔夫球手前后两天的比赛水平，都说明了，如果某一次表现优秀，并不能下定论这个选手一直会如此的优秀，反而，他的表现会回归平均值，但是如果某个选手的表现一直显著超过平均值，那么，说明他是一位优秀的选手。
+回归效应是普遍存在的现象，上过《体育画报》封面的运动员都会在之后的比赛中表现欠佳。
+作者强调了相关性和因果性是不同的概念：
+
+相关系数：两个值共有因素的相对比重，在0到1之间浮动。我理解的是，两个值是随机变量，有联合概率分布函数和联合概率密度函数，也有某个变量的边缘概率分布和边缘密度函数。查阅卯诗松概率统计的书籍，描述两个变量之间的统计关系可以采用协方差或者相关系数，但是因为协方差是带有量纲的，就是某种单位，无法归一化，所以有了相关系数这个无量纲的系数。
+$X$和$Y$两个随机变量的协方差，或者叫做相关矩（中心矩）
+$$
+COV(X,Y)=E(X-E(X))E(Y-E(Y))
+$$
+
+当$COV(X,Y)&gt;0$时候，说明两个随机变量是正相关的，当$COV(X,Y)&lt;0$时候，说明两个随机变量是负相关的，当$COV(X,Y)=0$时候，说明两个随机变量是不相关的。
+
+两个随机变量不相关不代表相互独立。
+
+
+
+
+相关系数的计算公式。
+
+
+
+变量之间的回归关系 &ndash; 英国生物学家兼统计学家高尔顿
+
+
+
+自变量$x$的取值是如何影响因变量$y$期望值的，该模型并不会给出$y$的具体取值，只是表明了$y$的平均水平会随$x$发生什么样的变化。
+
+
+如何在实践中利用这个效应？
+
+在做预测分析的时候，可以根据历史数据得到回归分析的结果，然后，根据个例的最近情况，比如最近三年的走势，结合回归分析结果进行加权平均，得到的加权平均更具有说服力。作者举例的连锁百货公司的下一年的门店销售额增长情况，需要在平均增长情况的基础上，对业绩较差的门店赋予大于10%的增长率，对于业绩较好的门店赋予小于10%的增长率。
+个人认为，这只是一种思维方式，需要我们使用更精确的数学模型来刻画这种变化情况。">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2023-12-24-book-thinking-fast-slow/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2023-12-24-book-thinking-fast-slow/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      《思考，快与慢》
+    </h1>
+    <div class="post-meta"><span title='2023-12-24 00:00:00 +0000 UTC'>2023年12月24日</span>&nbsp;·&nbsp;<span>35 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2023-12-24-Book-Thinking-Fast-Slow.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#第6章-意料之外与情理之中">第6章 意料之外与情理之中</a></li>
+    <li><a href="#第16章-因果关系比统计学更有说服力">第16章 因果关系比统计学更有说服力</a></li>
+    <li><a href="#第17章-所有表现都会回归平均值">第17章 所有表现都会回归平均值</a></li>
+    <li><a href="#第18章-如何让直觉性预测更恰当有效">第18章 如何让直觉性预测更恰当有效</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="第6章-意料之外与情理之中">第6章 意料之外与情理之中<a hidden class="anchor" aria-hidden="true" href="#第6章-意料之外与情理之中">#</a></h2>
+<p>讲系统1如何对发生的事件做判断的，分析了它的工作机理和存在的缺陷</p>
+<p>讲了心理学家乔恩的故事，从第一次的惊喜到第二次的习以为常，因果关系的推导在系统1看来，会因为之前发生了一次小概率事件而把之后再次发生类似事件认为习以为常，我个人认为就是条件概率在第二次采样的时候被系统1无意识地调高了。</p>
+<h2 id="第16章-因果关系比统计学更有说服力">第16章 因果关系比统计学更有说服力<a hidden class="anchor" aria-hidden="true" href="#第16章-因果关系比统计学更有说服力">#</a></h2>
+<p>在16章节当中，列举了出租车逃逸的事例。这个问题是要求我们回答出租车是蓝色而不是绿色的概率是多少。</p>
+<p>我们通过贝叶斯的思想来分析这个问题：
+事件B：出租车是蓝色的； 事件G: 出租车是绿色的；事件S：那个目击证人指认出出租车的颜色是蓝色的。</p>
+<p>因为$P(B)=0.15$, $P(G)=0.85$，这两个概率是先验的，假如现场没有目击证人的任何证词，我们只能根据先验信息来判断肇事出租车是蓝色的概率是0.15。但是现场有目击证人，目击证人的观察也具有一定的不确定性，他能够正确辨认出租车颜色的概率是0.8。其实，作者想要读者思考的是如何根据目击证人的证词和先验概率分布来计算出租车是蓝色的后验概率，这个后验概率是$P(B|S)$，我们可以通过贝叶斯公式来计算：</p>
+<p>$$
+P(B|S)=\frac{P(S|B)P(B)}{P(S)}
+$$</p>
+<p>上面的公式当中，比较容易得到概率数据的项：</p>
+<p>$P(S|B)=0.8$-&gt;当出租车为蓝色时目击证人指认出租车是蓝色的概率，是一个条件概率；</p>
+<p>$P(B)=0.15$-&gt;现场的出租车颜色是蓝色的概率；</p>
+<p>分母的$P(S)$是目击证人指认出租车是蓝色的概率，是一个边缘概率，在之前的卡尔曼滤波器学习笔记（一）当中提到过。如何确定这个概率的数值呢？我们可以通过全概率公式来计算：</p>
+<p>$$
+P(S)=P(S|B)P(B)+P(S|G)P(G)=0.8\times 0.15+0.2\times 0.85=0.29
+$$</p>
+<p>这样，我们就可以计算出$P(B|S)=0.41$。</p>
+<p>得到这个结果的反思：单纯依靠先验概率得到答案0.15，单纯依靠目击证人得到0.8都不是最合理的结果，需要综合两者的信息来判断，当我们依靠贝叶斯公式计算得到后验概率是0.41之后，我们会更信服这样的概率结果。</p>
+<p>在这个问题的讨论中，我和妻子产生了分歧，分歧点在于条件概率的计算是一个除法，除法的分子部分她选择了$P(B)$而不是$P(B)\times P(S|B)$，她认为分母部分已经把这个目击者看到的信息包含进去了，分子是这个城市蓝色汽车出现的概率。</p>
+<p>我的想法是$P(B)$和$P(G)$在这个问题中只是假设(Hypothesis)，这个问题的核心仍然是那个目击者，目击者说他看到蓝车是一个证据(evidence)，他看到蓝车并且假设是蓝车概率是$P(S,B)$，但是也有可能是绿车他说成蓝车，他看到蓝车但是假设是绿车概率是$P(S,G)$， 那么他看到蓝车并且假设也是蓝车的概率是$\frac{P(S,B)}{P(S,B)+P(S,G)}=0.41$ ，也就是这个问题的答案。全程考虑问题的重点是他提出他看到蓝车这个证据的事件需要在所有可能的假设上面做两个事件同时发生的概率求解，然后看看证据所描述的假设占据所有假设上的比率。隐藏的统计学基础比率（Statistical Base Rates）起到的作用就是计算提出证据这个事件和假设真的发生的概率。</p>
+<p>像是线性代数当中的基向量，我们在讨论问题的时候，并不会过度关心那些个基向量，我们关心的是基向量的线性组合，或者说是坐标，例如，飞机在飞行中的位置就是一个大地坐标系统下的向量，在飞机着陆过程中，地面控制系统关心的是飞机的z坐标（代表了当前的高度），如果高度不对会发生坠机事件，和x、y方向的联合速度，代表了水平飞行的朝向，如果朝向不对无法降落到飞机场。这些变量是飞机位置这个总体变量在某些方向上的投影。从概率的角度看，就是证据的提出向基础事件们投影，得到的投影作为新的样本，从样本中选择我们关心的子样本。</p>
+<p>从独立做100次实验的角度来看，让目击者独立重复看100次现场，实验设计85次是绿色出租车，15次是蓝色出租车，他看到蓝色出租车并且汇报是蓝车有12次，他看到绿色出租车并且汇报是蓝色出租车有17次，他总共汇报了29次是蓝车，但是这29次当中真正是蓝车只有12次，那么最终的概率就是12/29。</p>
+<p>作者在这一章节最想强调的事情是：在特殊场景发生的事情，即使是你亲眼看到的，也并不能把这个事件发生的概率提高到1，人们很容易忽略统计学的基础比例，但是如果统计学的基础比例换汤不换药地被描述为因果关系当中的原因，比如还是那个出租车肇事逃逸的问题，**描述为两家公司拥有相同数量的出租车，但是在造成事故的出租车当中，绿色出租车占比为85%。**那么，人们就更容易地接受这样的事实，就会觉得是绿色出租车的可能性变大，降低是蓝色出租车肇事的预期。从而改变了对这个事件的看法。但是从数学的角度，这两种描述都是贝叶斯公式当中的计算素材。作者提到的两个重要的概念分别是：</p>
+<blockquote>
+<p>统计学基础比率（Statistical Base Rates）：在一个特定的群体当中，某个特定的属性的比例，例如，某个城市的出租车当中，蓝色出租车的比例是15%，绿色出租车的比例是85%。普遍受到轻视，当人们手头有和该事件相关的具体信息时，有时候还会完全忘记或者忽略这个比率。</p>
+<p>因果关系基础比率（Causal Base Rates）：在一个特定的群体当中，某个特定的属性的比例，例如，某个城市的出租车当中，蓝色出租车肇事的比例是15%，绿色出租车肇事的比例是85%。因果关系往往被看作是个别事件的信息，人们很容易把这个信息和其他的具体事件结合起来考虑问题。</p>
+</blockquote>
+<p>文章讲到的思维定式，对于大脑中的系统1来说，它的特征之一就是代表了范畴规范和原型范例，这样的规范和范例决定了我们如何看待身边的事物，比如电冰箱，电动车和交通警察，在我们的记忆当中会存储所有这些范畴的事物或者个人相关的一个或者多个“规范的”典型形象，当这些规范具有了社会性的时候，这些典型形象就被称为思维定式。注意，这里是范式的式。</p>
+<p>我们应该如何做？</p>
+<ol>
+<li>我认为，在需要做出判断的时候，尽量能够把和当前所遇到的问题相关的名词列举出来，然后把他们做一些组合形成一些描述，然后再思考这些描述是否有普遍的统计学规律，如果有，把这些规律转化为因果关系的基础比率，帮助我们分析当前的这个具体问题。</li>
+<li>任何我们看到听到的事情，都是值得怀疑的，因为从数学的角度来看，这件事情发生都是概率性的，我们看到听到感受到的，只是该事件的某种观测，只要是观测，就会存在偏差，就会不准，即使我们主观感受觉得自己判断得很准。</li>
+<li>不能忽略基础比率，但是更不能忽略观测。</li>
+</ol>
+<h2 id="第17章-所有表现都会回归平均值">第17章 所有表现都会回归平均值<a hidden class="anchor" aria-hidden="true" href="#第17章-所有表现都会回归平均值">#</a></h2>
+<p><code>成功=天赋+运气</code></p>
+<p>从飞行员特技表演到高尔夫球手前后两天的比赛水平，都说明了，如果某一次表现优秀，并不能下定论这个选手一直会如此的优秀，反而，他的表现会回归平均值，但是如果某个选手的表现一直显著超过平均值，那么，说明他是一位优秀的选手。
+回归效应是普遍存在的现象，上过《体育画报》封面的运动员都会在之后的比赛中表现欠佳。</p>
+<p>作者强调了相关性和因果性是不同的概念：</p>
+<ul>
+<li>相关系数：两个值共有因素的相对比重，在0到1之间浮动。我理解的是，两个值是随机变量，有联合概率分布函数和联合概率密度函数，也有某个变量的边缘概率分布和边缘密度函数。查阅卯诗松概率统计的书籍，描述两个变量之间的统计关系可以采用协方差或者相关系数，但是因为协方差是带有量纲的，就是某种单位，无法归一化，所以有了相关系数这个无量纲的系数。
+$X$和$Y$两个随机变量的协方差，或者叫做相关矩（中心矩）
+$$
+COV(X,Y)=E(X-E(X))E(Y-E(Y))
+$$</li>
+</ul>
+<p>当$COV(X,Y)&gt;0$时候，说明两个随机变量是正相关的，当$COV(X,Y)&lt;0$时候，说明两个随机变量是负相关的，当$COV(X,Y)=0$时候，说明两个随机变量是不相关的。</p>
+<ul>
+<li>两个随机变量不相关不代表相互独立。</li>
+</ul>
+<p><img alt="随机变量独立性的定义" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/def_independency.png"></p>
+<ul>
+<li>
+<p>相关系数的计算公式。
+<img alt="两个随机变量的相关系数" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/def_correlation.png"></p>
+</li>
+<li>
+<p>变量之间的回归关系 &ndash; 英国生物学家兼统计学家高尔顿
+<img alt="回归分析的意义" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/regression_analysis.png"></p>
+</li>
+</ul>
+<p><strong>自变量$x$的取值是如何影响因变量$y$期望值的，该模型并不会给出$y$的具体取值，只是表明了$y$的平均水平会随$x$发生什么样的变化。</strong></p>
+<p><img alt="一元线性回归模型" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/linear_regression.png"></p>
+<ul>
+<li>如何在实践中利用这个效应？</li>
+</ul>
+<p>在做预测分析的时候，可以根据历史数据得到回归分析的结果，然后，根据个例的最近情况，比如最近三年的走势，结合回归分析结果进行加权平均，得到的加权平均更具有说服力。作者举例的连锁百货公司的下一年的门店销售额增长情况，需要在平均增长情况的基础上，对业绩较差的门店赋予大于10%的增长率，对于业绩较好的门店赋予小于10%的增长率。
+个人认为，这只是一种思维方式，需要我们使用更精确的数学模型来刻画这种变化情况。</p>
+<h2 id="第18章-如何让直觉性预测更恰当有效">第18章 如何让直觉性预测更恰当有效<a hidden class="anchor" aria-hidden="true" href="#第18章-如何让直觉性预测更恰当有效">#</a></h2>
+<p>对问题的预测和对问题的估测是不同的，到底哪里不同？</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/%E8%AF%BB%E4%B9%A6/">读书</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2024-02-04-dubai/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>迪拜AEEDC2024展会</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2023-12-08-kalman-filter-theory-2/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>卡尔曼滤波器学习笔记（二）：随机过程和线性卡尔曼滤波器</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

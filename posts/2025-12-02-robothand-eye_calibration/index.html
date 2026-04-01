@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>手眼标定 | Yang&#39;s Blog</title>
+<meta name="keywords" content="标定">
+<meta name="description" content="本文参考了OPENCV
+问题描述
+在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。
+
+利用李代数和最小二乘解决$AX=XB$的问题。
+平移旋转分开求解
+从齐次等式提取旋转部分
+$$
+\begin{bmatrix}
+R_A &amp; b_A \
+0 &amp; 1
+\end{bmatrix}
+\begin{bmatrix}
+R_X &amp; b_X \
+0 &amp; 1
+\end{bmatrix}=
+\begin{bmatrix}
+R_X &amp; b_X \
+0 &amp; 1
+\end{bmatrix}\begin{bmatrix}
+R_B &amp; b_B \
+0 &amp; 1
+\end{bmatrix}
+$$
+$$
+R_AR_X=R_XR_B
+$$
+李代数和李群之间的相互映射
+在SO(3)上，旋转矩阵$R$的李代数$\phi$ $\boldsymbol u\in so(3)$是一个三维向量($\boldsymbol u$是一个单位向量，$\phi\in \mathbb R$)。$\boldsymbol u^{\wedge}$是一个反对称矩阵。
+so(3)李代数到SO(3)的指数映射&ndash;罗德里格斯公式
+$$
+R=e^{\phi \boldsymbol u^{\wedge}}=\cos\phi I &#43; (1-\cos \phi) \boldsymbol u\boldsymbol u^T &#43; \sin \phi \boldsymbol u^{\wedge}
+$$">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      手眼标定
+    </h1>
+    <div class="post-meta"><span title='2025-12-02 00:00:00 +0000 UTC'>2025年12月2日</span>&nbsp;·&nbsp;<span>17 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2025-12-02-RobotHand-Eye_calibration.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#问题描述">问题描述</a></li>
+    <li><a href="#平移旋转分开求解">平移旋转分开求解</a></li>
+    <li><a href="#从齐次等式提取旋转部分">从齐次等式提取旋转部分</a></li>
+    <li><a href="#李代数和李群之间的相互映射">李代数和李群之间的相互映射</a>
+      <ul>
+        <li><a href="#so3李代数到so3的指数映射罗德里格斯公式">so(3)李代数到SO(3)的指数映射&ndash;罗德里格斯公式</a></li>
+        <li><a href="#so3到so3的对数映射">SO(3)到so(3)的对数映射</a></li>
+        <li><a href="#李代数boldsymbol-uu_1--u_2--u_3t对应的反对称矩阵的定义和性质">李代数$\boldsymbol u=[u_1 \ u_2 \ u_3]^T$对应的反对称矩阵的定义和性质</a></li>
+      </ul>
+    </li>
+    <li><a href="#李群相等转换到李代数相等">李群相等转换到李代数相等</a></li>
+    <li><a href="#求解过程">求解过程</a></li>
+    <li><a href="#测量带噪声">测量带噪声</a></li>
+    <li><a href="#数据预处理">数据预处理</a></li>
+    <li><a href="#求解旋转矩阵">求解旋转矩阵</a></li>
+    <li><a href="#求解平移向量">求解平移向量</a></li>
+    <li><a href="#代码">代码</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>本文参考了<a href="https://www.torsteinmyhre.name/snippets/robcam_calibration.html">OPENCV</a></p>
+<h2 id="问题描述">问题描述<a hidden class="anchor" aria-hidden="true" href="#问题描述">#</a></h2>
+<p>在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。</p>
+<p><img loading="lazy" src="https:/https://images-1302340771.cos.ap-beijing.myqcloud.com/images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png"></p>
+<p>利用李代数和最小二乘解决$AX=XB$的问题。</p>
+<h2 id="平移旋转分开求解">平移旋转分开求解<a hidden class="anchor" aria-hidden="true" href="#平移旋转分开求解">#</a></h2>
+<h2 id="从齐次等式提取旋转部分">从齐次等式提取旋转部分<a hidden class="anchor" aria-hidden="true" href="#从齐次等式提取旋转部分">#</a></h2>
+<p>$$
+\begin{bmatrix}
+R_A &amp; b_A \
+0 &amp; 1
+\end{bmatrix}
+\begin{bmatrix}
+R_X &amp; b_X \
+0 &amp; 1
+\end{bmatrix}=
+\begin{bmatrix}
+R_X &amp; b_X \
+0 &amp; 1
+\end{bmatrix}\begin{bmatrix}
+R_B &amp; b_B \
+0 &amp; 1
+\end{bmatrix}
+$$</p>
+<p>$$
+R_AR_X=R_XR_B
+$$</p>
+<h2 id="李代数和李群之间的相互映射">李代数和李群之间的相互映射<a hidden class="anchor" aria-hidden="true" href="#李代数和李群之间的相互映射">#</a></h2>
+<p>在SO(3)上，旋转矩阵$R$的李代数$\phi$ $\boldsymbol u\in so(3)$是一个三维向量($\boldsymbol u$是一个单位向量，$\phi\in \mathbb R$)。$\boldsymbol u^{\wedge}$是一个反对称矩阵。</p>
+<h3 id="so3李代数到so3的指数映射罗德里格斯公式">so(3)李代数到SO(3)的指数映射&ndash;罗德里格斯公式<a hidden class="anchor" aria-hidden="true" href="#so3李代数到so3的指数映射罗德里格斯公式">#</a></h3>
+<p>$$
+R=e^{\phi \boldsymbol u^{\wedge}}=\cos\phi I + (1-\cos \phi) \boldsymbol u\boldsymbol u^T + \sin \phi \boldsymbol u^{\wedge}
+$$</p>
+<h3 id="so3到so3的对数映射">SO(3)到so(3)的对数映射<a hidden class="anchor" aria-hidden="true" href="#so3到so3的对数映射">#</a></h3>
+<p>$$
+log(R)=\boldsymbol \phi^{\wedge}=\frac{\phi}{2\sin\phi}(R-R^T)
+$$</p>
+<p>其中，</p>
+<p>$$
+\phi = \arccos\left(\frac{trace(R)-1}{2}\right)
+$$</p>
+<h3 id="李代数boldsymbol-uu_1--u_2--u_3t对应的反对称矩阵的定义和性质">李代数$\boldsymbol u=[u_1 \ u_2 \ u_3]^T$对应的反对称矩阵的定义和性质<a hidden class="anchor" aria-hidden="true" href="#李代数boldsymbol-uu_1--u_2--u_3t对应的反对称矩阵的定义和性质">#</a></h3>
+<p>$$
+\boldsymbol u^{\wedge}=
+\begin{bmatrix}
+0 &amp; -u_3 &amp; u_2 \
+u_3 &amp; 0 &amp; -u_1 \
+-u_2 &amp; u_1 &amp; 0
+\end{bmatrix}
+$$</p>
+<p><em><strong>并且，该反对称矩阵有性质：$R=e^{\phi\boldsymbol u^{\wedge}}$(体现了$\phi \boldsymbol u^{\wedge}$是旋转对时间导数的性质，$\phi$越大，意味着绕着转轴$\boldsymbol u$转动越快速)。</strong></em></p>
+<h2 id="李群相等转换到李代数相等">李群相等转换到李代数相等<a hidden class="anchor" aria-hidden="true" href="#李群相等转换到李代数相等">#</a></h2>
+<p>问题转化：找到一个$X$，使得李群中的旋转$R_A$和$R_XR_BR_X^T$相等（这里是理想情况下，测量不带噪声）。
+如果测量值$R_{A_i}$，$R_{B_i}$不带噪声，给定任意一组测量值$R_A$和$R_B$。看看李代数so(3)中的两个向量怎么和上述的旋转相等建立关系。</p>
+<p>$$
+\begin{aligned}
+&amp; R_AR_X=R_XR_B \
+&amp; R_A=R_XR_BR_X^T \
+&amp; log(R_A)=log(R_XR_BR_X^T) \leftarrow \boldsymbol \phi_A^\wedge=log(R_A),\boldsymbol \phi_B^\wedge=log(R_B)\
+&amp; \boldsymbol \phi_A^\wedge=R_X\boldsymbol \phi_B^\wedge R_X^T \leftarrow (R_X \boldsymbol \phi_B)^\wedge=R_X\boldsymbol \phi_B^\wedge R_X^T\
+&amp; \boldsymbol \phi_A=R_X\boldsymbol \phi_B
+\end{aligned}
+$$</p>
+<p>因为绕着一个轴旋转$\theta$和$\theta + 2\pi$角度效果是一样的，上面的推导有一个条件，就是约束$||\boldsymbol \phi_A|| \in (-\pi,\pi]$,$||\boldsymbol \phi_B|| \in (-\pi,\pi]$。</p>
+<h2 id="求解过程">求解过程<a hidden class="anchor" aria-hidden="true" href="#求解过程">#</a></h2>
+<h2 id="测量带噪声">测量带噪声<a hidden class="anchor" aria-hidden="true" href="#测量带噪声">#</a></h2>
+<p>在给定数据带有噪声的情况下，我们把每一组转化之间的误差进行平方和最小化：
+$$
+\arg_{R_X \in SO(3)}min\sum_i ||\boldsymbol \phi_{A_i} - R_X \boldsymbol \phi_{B_i}||^2
+$$</p>
+<p>根据<a href="chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://dominoweb.draco.res.ibm.com/reports/RC6945.pdf">Nadas</a>：</p>
+<p>$$
+\eta=\sum_{i=1}^{N}||\Theta\boldsymbol x_i+\boldsymbol b -\boldsymbol y_i||
+$$</p>
+<p>当且仅当$\Theta = (M^TM)^{-1/2}M^T$使得$\eta$最小，其中，$M=\sum_{i=0}^{i=N}{x_i y_i^T}$</p>
+<h2 id="数据预处理">数据预处理<a hidden class="anchor" aria-hidden="true" href="#数据预处理">#</a></h2>
+<p>采集了${R_{A_0},R_{A_1},\cdots,R_{A_n}}$和${R_{B_0},R_{B_1},\cdots,R_{B_n}}$数据。先根据上面的方法，求出$\alpha_i=log(R_{A_i})$和$\beta_i=log(R_{B_i})$。
+将$\alpha$和$\beta$组成矩阵$M$:</p>
+<p>$$
+M=\sum_{i=0}^{i=N}{\beta_i \alpha_i^T}
+$$</p>
+<h2 id="求解旋转矩阵">求解旋转矩阵<a hidden class="anchor" aria-hidden="true" href="#求解旋转矩阵">#</a></h2>
+<p>先求旋转参数$R^\star_X$</p>
+<p>$$
+R^\star_X = (M^TM)^{-1/2}M^T
+$$</p>
+<h2 id="求解平移向量">求解平移向量<a hidden class="anchor" aria-hidden="true" href="#求解平移向量">#</a></h2>
+<p>还有平移的参数需要估计$\boldsymbol b_X$。</p>
+<p>$$
+\begin{aligned}
+&amp; R_A\boldsymbol b_X+\boldsymbol b_A=R^\star_X\boldsymbol b_B+\boldsymbol b_X \
+&amp; \rightarrow
+\eta_2=\sum_{i=1}^{N}||(R_{A_i}-I)\boldsymbol b_X-R^\star_X\boldsymbol b_{B_i} +\boldsymbol b_{A_i}||
+\end{aligned}
+$$
+上面的最小化，是典型的最小二乘问题:<a href="https://warden2018.github.io/2020/01/30/2020-01-30-Linear-Algebra-ProjectionMatrix-Least-Squares/">投影矩阵和最小二乘</a></p>
+<p>$$
+\begin{aligned}
+&amp; M_i=R_{A_i}-I,\boldsymbol y_i=R^\star_X\boldsymbol b_{B_i} -\boldsymbol b_{A_i} \
+&amp; C=
+\begin{bmatrix}
+M_1 \
+M_2 \
+\vdots \
+M_N
+\end{bmatrix} \
+&amp; Y=\begin{bmatrix}
+\boldsymbol y_1 \
+\boldsymbol y_2 \
+\vdots \
+\boldsymbol y_N
+\end{bmatrix} \
+&amp; \boldsymbol b_X^\ast= \arg_{\boldsymbol b_X}min(C\boldsymbol b_X-Y)=C^{-1}C(CC^T)^{-1}C^T=(CC^T)^{-1}C^T
+\end{aligned}
+$$</p>
+<p>到此，旋转和平移全部求出。</p>
+<h2 id="代码">代码<a hidden class="anchor" aria-hidden="true" href="#代码">#</a></h2>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">60
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">61
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">62
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">63
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">64
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-C++" data-lang="C++"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">park_martin</span>(std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Eigen<span style="color:#f92672">::</span>Matrix4d<span style="color:#f92672">&gt;</span> A, std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Eigen<span style="color:#f92672">::</span>Matrix4d<span style="color:#f92672">&gt;</span> B, Eigen<span style="color:#f92672">::</span>Matrix4d<span style="color:#f92672">&amp;</span> result)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> dataLength <span style="color:#f92672">=</span> A.size();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span>(dataLength <span style="color:#f92672">!=</span> B.size())
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>Matrix3d M <span style="color:#f92672">=</span> Eigen<span style="color:#f92672">::</span>Matrix3d<span style="color:#f92672">::</span>Zero();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> dataLength; i<span style="color:#f92672">++</span>)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Eigen<span style="color:#f92672">::</span>Matrix3d Ra <span style="color:#f92672">=</span> A[i].toMatrix().block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>        Eigen<span style="color:#f92672">::</span>Matrix3d Rb <span style="color:#f92672">=</span> B[i].toMatrix().block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>        M <span style="color:#f92672">+=</span> log(Rb) <span style="color:#f92672">*</span> log(Ra).transpose();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//best rotation
+</span></span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>Matrix3d theta_X <span style="color:#f92672">=</span> invsqrt(M.transpose() <span style="color:#f92672">*</span> M) <span style="color:#f92672">*</span> M.transpose();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// best translation
+</span></span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>MatrixXd C(<span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> dataLength, <span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>MatrixXd y(<span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> dataLength, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> dataLength; i<span style="color:#f92672">++</span>)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Eigen<span style="color:#f92672">::</span>Matrix3d Ra <span style="color:#f92672">=</span> A[i].toMatrix().block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>        Eigen<span style="color:#f92672">::</span>Vector3d b_a <span style="color:#f92672">=</span> A[i].toMatrix().block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        Eigen<span style="color:#f92672">::</span>Matrix3d Rb <span style="color:#f92672">=</span> B[i].toMatrix().block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>        Eigen<span style="color:#f92672">::</span>Vector3d b_b <span style="color:#f92672">=</span> B[i].toMatrix().block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>        C.block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;</span>(i <span style="color:#f92672">*</span> <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">=</span> Ra <span style="color:#f92672">-</span> Eigen<span style="color:#f92672">::</span>Matrix3d<span style="color:#f92672">::</span>Identity();
+</span></span><span style="display:flex;"><span>        y.block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span><span style="color:#f92672">&gt;</span>(i <span style="color:#f92672">*</span> <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">=</span> theta_X <span style="color:#f92672">*</span> b_b <span style="color:#f92672">-</span> b_a;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>Vector3d b_x <span style="color:#f92672">=</span> (C.transpose() <span style="color:#f92672">*</span> C).inverse() <span style="color:#f92672">*</span> C.transpose() <span style="color:#f92672">*</span> y;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>Matrix4d result_M <span style="color:#f92672">=</span> Eigen<span style="color:#f92672">::</span>Matrix4d<span style="color:#f92672">::</span>Identity();
+</span></span><span style="display:flex;"><span>    result_M.block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">=</span> theta_X;
+</span></span><span style="display:flex;"><span>    result_M.block<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">1</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">3</span>) <span style="color:#f92672">=</span> b_x;
+</span></span><span style="display:flex;"><span>    result <span style="color:#f92672">=</span> result_M;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Eigen<span style="color:#f92672">::</span>Vector3d DrsToolCalibration<span style="color:#f92672">::</span>log(Eigen<span style="color:#f92672">::</span>Matrix3d rotM)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">double</span> theta <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>acos((rotM(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">+</span> rotM(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">+</span> rotM(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">2</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">1.0</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2.0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Eigen<span style="color:#f92672">::</span>Vector3d(rotM(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>) <span style="color:#f92672">-</span> rotM(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>), rotM(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>) <span style="color:#f92672">-</span> rotM(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">0</span>), rotM(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">-</span> rotM(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>))<span style="color:#f92672">*</span> theta <span style="color:#f92672">/</span> (<span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> std<span style="color:#f92672">::</span>sin(theta));
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Eigen<span style="color:#f92672">::</span>Matrix3d DrsToolCalibration<span style="color:#f92672">::</span>invsqrt(Eigen<span style="color:#f92672">::</span>Matrix3d rotM)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (rotM.rows() <span style="color:#f92672">!=</span> rotM.cols()) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> Eigen<span style="color:#f92672">::</span>MatrixXd();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>   
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>JacobiSVD<span style="color:#f92672">&lt;</span>Eigen<span style="color:#f92672">::</span>MatrixXd<span style="color:#f92672">&gt;</span> svd(rotM, Eigen<span style="color:#f92672">::</span>ComputeThinU <span style="color:#f92672">|</span> Eigen<span style="color:#f92672">::</span>ComputeThinV);
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>VectorXd s <span style="color:#f92672">=</span> svd.singularValues();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> s.size(); <span style="color:#f92672">++</span>i) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (s(i) <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>VectorXd inv_sqrt_s <span style="color:#f92672">=</span> s.array().inverse().sqrt();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> svd.matrixU() <span style="color:#f92672">*</span> inv_sqrt_s.asDiagonal() <span style="color:#f92672">*</span> svd.matrixV().transpose();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如何使用：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-C++" data-lang="C++"><span style="display:flex;"><span>    Eigen<span style="color:#f92672">::</span>Matrix4d park_martin_result;
+</span></span><span style="display:flex;"><span>    std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Eigen<span style="color:#f92672">::</span>Matrix4d<span style="color:#f92672">&gt;</span> tcp_list;
+</span></span><span style="display:flex;"><span>    std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Eigen<span style="color:#f92672">::</span>Matrix4d<span style="color:#f92672">&gt;</span> rh_list;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// here fill tcp_list and rh_list with data
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    park_martin(rh_list, tcp_list, park_martin_result);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// park_martin_result is the hand-eye calibration result
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/%E6%A0%87%E5%AE%9A/">标定</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2026-01-15-rl_5/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>学习RL(五)</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2025-06-27-rl_3/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>学习RL(三)</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

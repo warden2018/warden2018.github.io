@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Projection Matrix on Yang&#39;s Blog</title>
+    <link>http://localhost:1313/tags/projection-matrix/</link>
+    <description>Recent content in Projection Matrix on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 30 Jan 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/projection-matrix/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>投影矩阵和最小二乘</title>
+      <link>http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/</link>
+      <pubDate>Thu, 30 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/</guid>
+      <description>&lt;h2 id=&#34;投影矩阵&#34;&gt;投影矩阵&lt;/h2&gt;
+&lt;p&gt;之前的一篇&lt;a href=&#34;https://warden2018.github.io/2020/01/29/2020-01-29-Linear-Algebra-4Subspaces-Matrix/&#34;&gt;博客&lt;/a&gt;讲到了矩阵的四个子空间：行空间，列空间，零空间和左零空间。每一个空间唯一性地由这个矩阵决定，因为这个矩阵的列可能线性无关，可能线性相关，如果线性相关，能够在其中找到多少个线性无关的向量。所以，不同的矩阵所形成的对应的四个子空间情况各不相同。我们为了能够理解给定的矩阵四个空间分布情况，就引入了投影矩阵的概念，用来分析在空间中任意向量到这个矩阵的“距离”。下面我们具体看一下：
+首先回顾一下矩阵的列空间$C (A)$和对应的左零空间$N(A^T)$，它们所具有的最优秀的属性就是&lt;strong&gt;垂直&lt;/strong&gt;。
+矩阵$A$的投影矩阵$P$&lt;/p&gt;
+&lt;p&gt;$$
+P=A(A^TA)^{-1}A^T
+$$&lt;/p&gt;
+&lt;p&gt;给定任意一个与$A$列相同维度的向量 $ \boldsymbol b$，它与这个矩阵列空间的关系是什么？我们怎么能够几何直观地理解一下？&lt;/p&gt;
+&lt;p&gt;$$
+A=\begin{bmatrix}
+1&amp;amp;4\\
+2&amp;amp;5\\
+3&amp;amp;6
+\end{bmatrix}
+$$&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;两个列向量$\boldsymbol u=\begin{bmatrix}1\\ 2\\ 3\end{bmatrix},\boldsymbol v=\begin{bmatrix}4\\ 5\\ 6\end{bmatrix}$构成列空间（一个平面）。
+&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix2.png&#34;&gt;
+$\boldsymbol {per}=\begin{bmatrix}1\\ -2\\ 1\end{bmatrix}$是左零空间的一个向量。$\boldsymbol b$是三维空间内的任意向量，我们举出的是一般性的例子，即这个向量不在这两个子空间的任何一个空间内。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果在列空间，那么投影的作用是保留全部&amp;ndash;即该向量保持不变&lt;/li&gt;
+&lt;li&gt;如果在左零空间，那么投影的结果是0&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix3.png&#34;&gt;
+那么，投影矩阵对该任意向量的作用就是将这个向量对列空间投影，得到$\boldsymbol{projection}$向量，称为投影向量，再求一次向量减法运算，得到$\boldsymbol{e}$，误差向量，代表了这个任意给定向量和列空间的差别。&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{projection} + \boldsymbol{e}=\boldsymbol{b}
+$$&lt;/p&gt;
+&lt;h2 id=&#34;投影矩阵的性质&#34;&gt;投影矩阵的性质&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;幂等性（idempotent）：$P=P^2$。这也是投影矩阵的定义。由上面的描述我们可以得到任意向量做一次投影之后的结果已经在原矩阵的列空间内，继续做投影依旧保持第一次的投影不变。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;最小二乘&#34;&gt;最小二乘&lt;/h2&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;已知空间当中的一些点，如何找到一条直线，能够尽可能地离所有点最近？&lt;/p&gt;
+&lt;h2 id=&#34;问题梳理&#34;&gt;问题梳理&lt;/h2&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Least_Square.png&#34;&gt;
+假设二维空间有$n$个点，我们定义点$x=\begin{bmatrix}x_i\ y_i \end{bmatrix}$到直线$y=ax+b$的偏差为$e=ax_i+b-y_i$，最小化这些偏差的平方&lt;/p&gt;
+&lt;p&gt;$$
+S=\sqrt{\sum_{i=0}^n {(e_i)^2}}
+$$&lt;/p&gt;
+&lt;p&gt;为了最小化这个式子，根据式子的特点，我们可以将问题转化成为通过寻找向量的模长的最小值解决。这个向量是：&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol {e}=\begin{bmatrix} e_1&amp;amp; e_e  \cdots &amp;amp; e_n     \end{bmatrix}^T
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{e}=
+\begin{bmatrix} e_1\\  \vdots \\ e_n    \end{bmatrix}=
+\begin{bmatrix} y_1-b-ax_1\\  \vdots \\ y_n-b-ax_n    \end{bmatrix}=
+\begin{bmatrix} y_1\\  \vdots \\ y_n&lt;br&gt;
+\end{bmatrix}-a\begin{bmatrix} x_1\\  \vdots \\  x_n   \end{bmatrix}-
+b\begin{bmatrix} 1\\  \vdots \\ 1   \end{bmatrix}=
+\begin{bmatrix} y_1\\  \vdots \\ y_n   \end{bmatrix}-
+\begin{bmatrix} 1&amp;amp;x_1\\  \vdots &amp;amp;\vdots \\ 1 &amp;amp;x_n  \end{bmatrix}\begin{bmatrix}b\\ a\end{bmatrix}=\boldsymbol{y}-M\boldsymbol{x}
+$$&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

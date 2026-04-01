@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>Linear Algebra | Yang&#39;s Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/tags/linear-algebra/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/tags/linear-algebra/index.xml" title="rss">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/tags/linear-algebra/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+
+</head>
+<body class="list" id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main"> 
+<header class="page-header"><div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/tags/">Tags</a></div>
+  <h1>
+    Linear Algebra
+    <a href="/tags/linear-algebra/index.xml" title="RSS" aria-label="RSS">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" height="23">
+        <path d="M4 11a9 9 0 0 1 9 9" />
+        <path d="M4 4a16 16 0 0 1 16 16" />
+        <circle cx="5" cy="19" r="1" />
+      </svg>
+    </a>
+  </h1>
+</header>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">矩阵的奇异值分解
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p> Besides having a rather simple geometric explanation, the singular value decomposition offers extremely effective techniques for putting linear algebraic ideas into practice.
+SVD分解与四个子空间 任意的线性变换都可以进行奇异值分解(SVD: Singular Value Decomposition)。之前的一篇博客讲的特征值和特征向量都是针对方阵而言的.这里任意形状的矩阵都能够进行SVD变换。给定一个$m \times n$的矩阵$A$，$rank(A)=r$，这里需要特别说明，我们可以在这个矩阵的行空间和列空间内找到$r$个线性无关的基，即使行、列空间的维度有不同。此处是核心：我们能够参考方阵，对它的特征值特征向量的推导过程得到启发，结合这里矩阵不一定是方阵（行、列维度不同的特点），能否在行子空间内找到一组相互正交的单位基向量，这组基向量通过$A$的变换在列空间内“生产”出一组也是相互正交的向量，并且这组向量正好是列空间的一组基。
+$$ \begin{equation} Av_1=\sigma_1u_1, \cdots, Av_r=\sigma_1u_r \end{equation} \label{eq1}\tag{1} $$
+($\ref{eq1}$) 中，$v_i(i=0,1,\cdots,r)$是行空间内的单位向量，且$v_i^T \dot v_j=0 (i \neq j)$，$u_i(i=0,1,\cdots,r)$是列空间内的单位向量（Orthonormal basis），且$u_i^T \dot u_j=0 (i \neq j)$，$\sigma_i(i=0,1,\cdots,r)$是列空间内单位向量的伸缩系数。 写成矩阵乘法的形式如下：
+$$ \begin{equation} A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&amp;0&amp;\cdots&amp;0\\ 0&amp;\sigma_2&amp;\cdots&amp;0\\ \vdots&amp;\vdots&amp;\vdots&amp;\vdots\\ 0&amp;\cdots&amp;\cdots&amp;\sigma_r\end{bmatrix} \end{equation} \label{eq2}\tag{2} $$
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2020-06-22 00:00:00 +0000 UTC'>2020年6月22日</span>&nbsp;·&nbsp;<span>26 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 矩阵的奇异值分解" href="http://localhost:1313/posts/2020-02-03-linear-algebra-svd/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">相似矩阵和矩阵的特征值特征向量
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>相似矩阵 问题描述 为什么会产生相似矩阵这个感念？ 场景描述：假定在一个线性空间当中，存在两组不同的基向量。在空间当中任何一个向量在不同的基下，投影的长度、方向都有所不同。当我们对这个向量施加变换的时候，也就是左乘一个变换矩阵，在不同的基下，这个左乘的矩阵形式上面是不同的，但是，它们有一个共同特点，就是相似，因为描述了同一个变换。
+正向推导 按照我们刚才看到的这段话，我们可以用数学语言进行一次推导。
+同一个向量不同基下的描述 假设线性空间内基由$n$个向量组成，我们不妨选取其中两组基：$\begin{bmatrix}\boldsymbol{\alpha_1} &amp; \boldsymbol{\alpha_2} \cdots \boldsymbol{\alpha_n} \end{bmatrix}$$，$$\begin{bmatrix}\boldsymbol{\beta_1} &amp; \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n} \end{bmatrix}$。
+在此空间内的任意向量$\boldsymbol{b}$:
+$$ \begin{equation} \boldsymbol{b} = \begin{bmatrix}\boldsymbol{\alpha_1} &amp; \boldsymbol{\alpha_2} \cdots \boldsymbol{\alpha_n} \end{bmatrix} \boldsymbol{x_1} \tag{1} \end{equation} $$
+$$ \begin{equation} \boldsymbol{b} = \begin{bmatrix}\boldsymbol{\beta_1} &amp; \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n} \end{bmatrix}\boldsymbol{x_2} \tag{2} \end{equation} $$
+对于$\boldsymbol{b}$，有：
+$$ \begin{equation} [\boldsymbol{\alpha}]\boldsymbol{x_1}=[\boldsymbol{\beta}]\boldsymbol{x_2} \label{eq3}\tag{3} \end{equation} $$
+一次线性变换 对该向量做一次线性变换，分别得到在两组基下面的坐标向量：$\boldsymbol{y_1},\boldsymbol{y_2}$
+那么，同一组基下，变换前后的两个向量具有如下的关系：
+$$ \begin{equation} T_1 \boldsymbol{x_1}=\boldsymbol{y_1} \label{eq4}\tag{4} \end{equation} $$
+$$ \begin{equation} T_2 \boldsymbol{x_2}=\boldsymbol{y_2} \label{eq5}\tag{5} \end{equation} $$
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2020-01-31 00:00:00 +0000 UTC'>2020年1月31日</span>&nbsp;·&nbsp;<span>33 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 相似矩阵和矩阵的特征值特征向量" href="http://localhost:1313/posts/2020-01-31-linear-algebra-similarmatrix-eigenvector-eigenvalue/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">投影矩阵和最小二乘
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>投影矩阵 之前的一篇博客讲到了矩阵的四个子空间：行空间，列空间，零空间和左零空间。每一个空间唯一性地由这个矩阵决定，因为这个矩阵的列可能线性无关，可能线性相关，如果线性相关，能够在其中找到多少个线性无关的向量。所以，不同的矩阵所形成的对应的四个子空间情况各不相同。我们为了能够理解给定的矩阵四个空间分布情况，就引入了投影矩阵的概念，用来分析在空间中任意向量到这个矩阵的“距离”。下面我们具体看一下： 首先回顾一下矩阵的列空间$C (A)$和对应的左零空间$N(A^T)$，它们所具有的最优秀的属性就是垂直。 矩阵$A$的投影矩阵$P$
+$$ P=A(A^TA)^{-1}A^T $$
+给定任意一个与$A$列相同维度的向量 $ \boldsymbol b$，它与这个矩阵列空间的关系是什么？我们怎么能够几何直观地理解一下？
+$$ A=\begin{bmatrix} 1&amp;4\\ 2&amp;5\\ 3&amp;6 \end{bmatrix} $$
+两个列向量$\boldsymbol u=\begin{bmatrix}1\\ 2\\ 3\end{bmatrix},\boldsymbol v=\begin{bmatrix}4\\ 5\\ 6\end{bmatrix}$构成列空间（一个平面）。 $\boldsymbol {per}=\begin{bmatrix}1\\ -2\\ 1\end{bmatrix}$是左零空间的一个向量。$\boldsymbol b$是三维空间内的任意向量，我们举出的是一般性的例子，即这个向量不在这两个子空间的任何一个空间内。
+如果在列空间，那么投影的作用是保留全部–即该向量保持不变 如果在左零空间，那么投影的结果是0 那么，投影矩阵对该任意向量的作用就是将这个向量对列空间投影，得到$\boldsymbol{projection}$向量，称为投影向量，再求一次向量减法运算，得到$\boldsymbol{e}$，误差向量，代表了这个任意给定向量和列空间的差别。
+$$ \boldsymbol{projection} &#43; \boldsymbol{e}=\boldsymbol{b} $$
+投影矩阵的性质 幂等性（idempotent）：$P=P^2$。这也是投影矩阵的定义。由上面的描述我们可以得到任意向量做一次投影之后的结果已经在原矩阵的列空间内，继续做投影依旧保持第一次的投影不变。 最小二乘 问题描述 已知空间当中的一些点，如何找到一条直线，能够尽可能地离所有点最近？
+问题梳理 假设二维空间有$n$个点，我们定义点$x=\begin{bmatrix}x_i\ y_i \end{bmatrix}$到直线$y=ax&#43;b$的偏差为$e=ax_i&#43;b-y_i$，最小化这些偏差的平方
+$$ S=\sqrt{\sum_{i=0}^n {(e_i)^2}} $$
+为了最小化这个式子，根据式子的特点，我们可以将问题转化成为通过寻找向量的模长的最小值解决。这个向量是：
+$$ \boldsymbol {e}=\begin{bmatrix} e_1&amp; e_e \cdots &amp; e_n \end{bmatrix}^T $$
+$$ \boldsymbol{e}= \begin{bmatrix} e_1\\ \vdots \\ e_n \end{bmatrix}= \begin{bmatrix} y_1-b-ax_1\\ \vdots \\ y_n-b-ax_n \end{bmatrix}= \begin{bmatrix} y_1\\ \vdots \\ y_n
+\end{bmatrix}-a\begin{bmatrix} x_1\\ \vdots \\ x_n \end{bmatrix}- b\begin{bmatrix} 1\\ \vdots \\ 1 \end{bmatrix}= \begin{bmatrix} y_1\\ \vdots \\ y_n \end{bmatrix}- \begin{bmatrix} 1&amp;x_1\\ \vdots &amp;\vdots \\ 1 &amp;x_n \end{bmatrix}\begin{bmatrix}b\\ a\end{bmatrix}=\boldsymbol{y}-M\boldsymbol{x} $$
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2020-01-30 00:00:00 +0000 UTC'>2020年1月30日</span>&nbsp;·&nbsp;<span>17 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 投影矩阵和最小二乘" href="http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">矩阵的四个子空间
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>前言 线性代数，同微积分一样，是高等数学中两大入门课程之一，它除了是一门数学课程，也是非常好的工具类学科，在很多的领域都有涉及，比如在人工智能领域，机器学习和数值优化。它的研究对象是向量，向量空间（或称线性空间），线性变换和有限维的线性方程组。从线性空间的角度作为切入点，我们能够更好地理解向量，矩阵以及矩阵的特征值、特征向量、相似矩阵、正定矩阵、奇异值分解等等。在这里，我强烈推荐MIT教授William Gilbert Strang的MIT 18.06 Linear Algebra课程，视频能够在youtube或者是网易公开课上找到。他讲解线性代数的思路很容易理解，更重要的是他从空间的角度出发，很自然轻松地解释所有的内容。在他的课程当中，给我印象最深的就是矩阵的四个子空间部分。下面我们逐步深入下去，从空间的概念讲起，逐步到达线性代数最核心的概念：矩阵的四个子空间。
+空间 提到空间，我们首先想到的就是我们生活在三维环境，站在数学的角度上看，这是一个三维的欧几里得空间。经过数学家们的不断思考，他们用最凝练的语言描述空间的共同特点：
+由无穷多的点组成； 不同点之间存在着可以描述的相对关系； 在空间中通过点定义长度、角度； 容纳运动，或者更宽泛来讲就是容纳变换。 上面的这些性质中，最最关键的是第4条。第1、2条只能说是空间的基础，不算是空间特有的性质，凡是讨论数学问题，都得有一个集合，大多数还得在这个集合上定义一些结构（关系），并不是说有了这些就算是空间。而第3条太特殊，其他的空间不需要具备，更不是关键的性质。只有第4条是空间的本质，也就是说，容纳运动是空间的本质特征。 有句话叫做：“静止是相对的，运动才是绝对的。”我们思考的起点，必须要做到“运动”，即变换是运动，状态其实也是运动，只不过这个特殊的运动是从我们很难发觉的特殊起点开始的。这点我们将在后面讲到。
+线性空间 线性空间（Vector Space or Linear Space）的定义源于许多数学对象本身如何归类，例如几何向量、同型矩阵、实函数等等，它们满足相同的计算规则，都能够相加以及用数相乘，将它们称为向量。向量的一个集合$V$，如果对于$V$中的任意向量$u$,$v$和一个数集$F$内的数$a$,$b$，满足：
+加法封闭性：$(u&#43;v)\in V$ 数乘封闭性：$au \in V$,$(au&#43;bv)\in V$ 那么，这个空间就是一个线性空间。
+线性空间中的对象如何表达？
+我的理解：两个关键点：一个是一组合适的基，另一个是这些基的有序求和（坐标）。 $$ \begin{bmatrix}	&amp; a_{0,0} &amp; a_{0,1} &amp; a_{0, 2 }&amp; \cdots &amp; a_{0, n -1} \\ &amp; a_{1, 0 } &amp; a_{1, 1} &amp; a_{1 ,2 }&amp; \cdots &amp; a_{1 ,n -1}\\ &amp; \vdots &amp; \vdots&amp; \vdots &amp; \ddots &amp; \vdots \\ &amp; a_{n-1 ,0 }&amp; a_{n-1 ,1} &amp; a_{n-1, 2 }&amp; \cdots &amp; a_{n-1, n -1} \\ \end{bmatrix} \begin{bmatrix} &amp; k_0 \\ &amp; k_1 \\ &amp; \vdots \\ &amp; k_{n-1} \end{bmatrix} =k_0 \begin{bmatrix} a_{0,0}\\ a_{1,0} \\ \vdots \\ a_{n-1,0} \end{bmatrix} &#43;k_1 \begin{bmatrix} a_{0,1}\\ a_{1,1} \\ \vdots \\ a_{n-1,1} \end{bmatrix} &#43;\cdots&#43;k_{n-1} \begin{bmatrix} a_{0,n-1}\\ a_{1,n-1} \\ \vdots \\ a_{n-1,n-1} \end{bmatrix} $$
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2020-01-29 00:00:00 +0000 UTC'>2020年1月29日</span>&nbsp;·&nbsp;<span>42 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 矩阵的四个子空间" href="http://localhost:1313/posts/2020-01-29-linear-algebra-4subspaces-matrix/"></a>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>

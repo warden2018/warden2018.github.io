@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Design Pattern on Yang&#39;s Blog</title>
+    <link>http://localhost:1313/categories/design-pattern/</link>
+    <description>Recent content in Design Pattern on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 23 Jul 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/design-pattern/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>设计模式之“状态模式”</title>
+      <link>http://localhost:1313/posts/2024-07-23-designpattern-statemode/</link>
+      <pubDate>Tue, 23 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-23-designpattern-statemode/</guid>
+      <description>&lt;h2 id=&#34;由来&#34;&gt;由来&lt;/h2&gt;
+&lt;p&gt;最近的项目当中，需要添加新的功能来满足产品需求。因为我们的产品是一个特殊的器械，在机器运行的任何时刻，都可能会有人的操作和介入，所以之前的代码对于各种从外部进来的输入都是使用&lt;code&gt;if else&lt;/code&gt;的结构来解决。困难是随着功能的增加，这个&lt;code&gt;if else&lt;/code&gt;的代码块会越来越多，并且新的代码可能会把原来的功能破坏掉。为了解耦不同状态下的操作，并且让系统有正确的输出，我们决定重构这一部分的代码。&lt;/p&gt;
+&lt;h2 id=&#34;最近的体会&#34;&gt;最近的体会&lt;/h2&gt;
+&lt;p&gt;雷军作为中国最早的一批软件开发从业者，他曾经说过，在写代码的过程中，如果你认为某一个地方可能会出现错误，那么，那个地方就或多或少一定会出问题。这句话带给我的体会就是，软件设计的思路一定要非常清楚，功能之间耦合度降到最低，这样的代码才会拥有更高的品质。&lt;/p&gt;
+&lt;h2 id=&#34;状态模式&#34;&gt;状态模式&lt;/h2&gt;
+&lt;p&gt;状态模式的设计思路很像有限状态机。在任何一个时刻，系统都处于某一种状态下，在这种状态下，系统拥有独特的行为。并且由于某种原因（可能是外部的输入或者系统运行到了某些条件）系统的当前状态会切换到其他的状态继续运行。这种切换是随时的，从用户的角度来看，只是行为发生了变换，但是软件的实现是通过不同的类（Status）来实现这些行为的。&lt;/p&gt;
+&lt;h2 id=&#34;具体实现&#34;&gt;具体实现&lt;/h2&gt;
+&lt;p&gt;本文参考了两本书，一本是《Dive into Design Patterns》,另外一本是《Head First 设计模式》。
+在下面的结构图当中，业务接口&lt;code&gt;Context&lt;/code&gt;并不直接实现自己的成员函数，而是通过调用&lt;code&gt;State&lt;/code&gt;对象的成员来完成。&lt;code&gt;State&lt;/code&gt;作为实际工作的对象&lt;code&gt;ConcreteStates&lt;/code&gt;的基类，提供了一切可能被&lt;code&gt;Context&lt;/code&gt;调用的接口。在&lt;code&gt;ConcreteStates&lt;/code&gt;内部，针对自己的状态特点，可以实现在不同接口调用下的系统行为，并且还可以直接操作&lt;code&gt;Context&lt;/code&gt;对象的指针，来实现状态的切换。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;Dive into Design patterns&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/designPattern.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;状态模式的结构&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/status_designPattern.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;总结&#34;&gt;总结&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;状态模式最大的特点是用户所关心的对象（&lt;code&gt;Context&lt;/code&gt;）的状态和行为随着时间推移发生变化并不是这个对象自己切换出来的，而是它所拥有的状态自己做出了响应和切换为下一个状态。而且状态自己在赋值新状态的时候，是调用&lt;code&gt;Context&lt;/code&gt;的方法获取的，获取到的这个新状态是在&lt;code&gt;Context&lt;/code&gt;创建的时候已经创建好的,只能在有限的几个状态下切换。&lt;/li&gt;
+&lt;li&gt;在设计状态的时候，每一种状态要保证相互独立，没有耦合，而且需要做一个默认状态，这个状态包含了所有没有考虑进去的情况，在这种情况下，做统一的安全处理。&lt;/li&gt;
+&lt;/ol&gt;</description>
+    </item>
+  </channel>
+</rss>

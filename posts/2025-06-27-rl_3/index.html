@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>学习RL(三) | Yang&#39;s Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="
+Learning就是通过迭代的方法找到更接近真实值的手段。
+
+蒙特卡洛方法
+当研究的问题动态模型未知的时候，怎么做策略估计？怎么做策略的改进？
+在实际应用中，经常遇到模型未知的情况，无法像上一章节讲的，通过Bellman公式计算状态价值是根据模型（状态传递概率$p(s&rsquo;,r|s,a)$）得到的，但是实际应用中经常遇到没有这样的概率可以依赖。
+
+思路就是既然MDP利用环境状态传递概率(State Transition Probability)$p(s&rsquo;,r|s,a)$来加权计算期望，在不知道这个概率的情况下，能否利用多次采集某状态出现的时候，环境给出的奖励Reward来平均计算，作为状态价值。
+
+解法就是通过实验，多次执行episode，在每次的循环中，记录特定状态出现的次数以及循环结束之后所获得的奖励，最后依据大数定律，对积累起来的奖励求平均值，就当作该状态的价值。如果我们事先知道所有的可能状态（在该特定的policy下面，应该可以确定出来），那么就维护一个数组，存储每一种状态的上面的信息，最后所有状态的价值都计算出来就意味着策略评估完成了。
+但是问题来了：如果一个episode持续很长时间，或者就无法结束，那么，蒙特卡洛方法这种依赖episode结束才可以获得状态价值的方法就无法应用，需要找到替代的方法来近似。
+TD-learning就解决了这个问题。基于TD-Learning就衍生出一系列的方法解决这类问题。
+MC Policy Evaluation and Control
+$$G_t=R_{t&#43;1} &#43; \gamma R_{t&#43;2}&#43; \gamma^2 R_{t&#43;3} \cdots &#43; \gamma^{T-1} R_{T}$$
+$$v_\pi(s)=\mathbb{E}_\pi(G_t|S_t=s)$$
+
+需要循环多次episode, 每次episode开始之后，每一次遇到感兴趣的$s$，记录$N(s)=N(s)&#43;1$，并且把Return加进来：$G(\boldsymbol s,a)=G(\boldsymbol s,a)&#43;r$
+完成当前的episode后，计算$Q(\boldsymbol s,a)=G(\boldsymbol s,a)/N(\boldsymbol s,a)$ -&gt;类似于累加Reward的过程
+然后遍历$a$，更新策略：$\pi(s)=argmax_aQ(\boldsymbol s, a)$
+
+Monte Carlo ES，是指每一个episode起始的状态选择是随机的，不能固定，避免有些状态永远无法被访问到。下图是书中的算法流程。
+这部分也叫做MC Policy Improvement。
+从给定的$\pi_0$开始，$E$代表策略估计（Policy Estimation），得到动作价值函数$Q_{\pi_0}$，采用贪心算法（greedy）找到使得$Q_\pi(\boldsymbol s, a)$最大的action: $\pi_1(\boldsymbol s) \leftarrow \arg max_{a}Q_{\pi_0}(\boldsymbol s, a)$
+$$
+\pi_0 \xrightarrow{\text{E}}Q_{\pi_0}\xrightarrow{\text{I}}\pi_1\xrightarrow{\text{I}}\pi_2\cdots
+\xrightarrow{\text{I}}\pi_*\xrightarrow{\text{E}}Q_{\pi_ *}
+$$
+参看4.6 广义策略迭代(Generalized Policy Iteration)
+
+
+On-Policy and Off-Policy
+在学习Q值的过程中，我们会遇到两种情况：">
+<meta name="author" content="Yang - type/post">
+<link rel="canonical" href="http://localhost:1313/posts/2025-06-27-rl_3/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2025-06-27-rl_3/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      学习RL(三)
+    </h1>
+    <div class="post-meta"><span title='2025-06-27 00:00:00 +0000 UTC'>2025年6月27日</span>&nbsp;·&nbsp;<span>37 分钟</span>&nbsp;·&nbsp;<span>Yang - type/post</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2025-06-27-RL_3.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#蒙特卡洛方法">蒙特卡洛方法</a></li>
+    <li><a href="#mc-policy-evaluation-and-control">MC Policy Evaluation and Control</a></li>
+    <li><a href="#on-policy-and-off-policy">On-Policy and Off-Policy</a></li>
+    <li><a href="#td-learning">TD Learning</a></li>
+    <li><a href="#sarsa---state-action-reward-state-action">Sarsa - State Action Reward State Action</a></li>
+    <li><a href="#q-learning---off-policy-td-control">Q-Learning - off-policy TD control</a></li>
+    <li><a href="#expected-sarsa">Expected Sarsa</a></li>
+    <li><a href="#deep-q-network">Deep Q-Network</a></li>
+    <li><a href="#参考">参考</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><blockquote>
+<p><em><strong>Learning</strong></em>就是通过迭代的方法找到更接近真实值的手段。</p>
+</blockquote>
+<h2 id="蒙特卡洛方法">蒙特卡洛方法<a hidden class="anchor" aria-hidden="true" href="#蒙特卡洛方法">#</a></h2>
+<p><em><strong>当研究的问题动态模型未知的时候，怎么做策略估计？怎么做策略的改进？</strong></em></p>
+<p>在实际应用中，经常遇到模型未知的情况，无法像上一章节讲的，通过<em><strong>Bellman</strong></em>公式计算状态价值是根据模型（状态传递概率$p(s&rsquo;,r|s,a)$）得到的，但是实际应用中经常遇到没有这样的概率可以依赖。</p>
+<blockquote>
+<p>思路就是既然MDP利用环境状态传递概率(<em><strong>State Transition Probability</strong></em>)$p(s&rsquo;,r|s,a)$来加权计算期望，在不知道这个概率的情况下，能否利用多次采集某状态出现的时候，环境给出的奖励<em><strong>Reward</strong></em>来平均计算，作为状态价值。</p>
+</blockquote>
+<p>解法就是通过实验，多次执行<em><strong>episode</strong></em>，在每次的循环中，记录特定状态出现的次数以及循环结束之后所获得的奖励，最后依据大数定律，对积累起来的奖励求平均值，就当作该状态的价值。如果我们事先知道所有的可能状态（在该特定的policy下面，应该可以确定出来），那么就维护一个数组，存储每一种状态的上面的信息，最后所有状态的价值都计算出来就意味着策略评估完成了。
+但是问题来了：如果一个<em><strong>episode</strong></em>持续很长时间，或者就无法结束，那么，蒙特卡洛方法这种依赖<em><strong>episode</strong></em>结束才可以获得状态价值的方法就无法应用，需要找到替代的方法来近似。
+TD-learning就解决了这个问题。基于TD-Learning就衍生出一系列的方法解决这类问题。</p>
+<h2 id="mc-policy-evaluation-and-control">MC Policy Evaluation and Control<a hidden class="anchor" aria-hidden="true" href="#mc-policy-evaluation-and-control">#</a></h2>
+<p>$$G_t=R_{t+1} + \gamma R_{t+2}+ \gamma^2 R_{t+3} \cdots + \gamma^{T-1} R_{T}$$
+$$v_\pi(s)=\mathbb{E}_\pi(G_t|S_t=s)$$</p>
+<ol>
+<li>需要循环多次<em><strong>episode</strong></em>, 每次<em><strong>episode</strong></em>开始之后，每一次遇到感兴趣的$s$，记录$N(s)=N(s)+1$，并且把<em><strong>Return</strong></em>加进来：$G(\boldsymbol s,a)=G(\boldsymbol s,a)+r$</li>
+<li>完成当前的<em><strong>episode</strong></em>后，计算$Q(\boldsymbol s,a)=G(\boldsymbol s,a)/N(\boldsymbol s,a)$ -&gt;类似于累加Reward的过程</li>
+<li>然后遍历$a$，更新策略：$\pi(s)=argmax_aQ(\boldsymbol s, a)$</li>
+</ol>
+<p><em><strong>Monte Carlo ES</strong></em>，是指每一个<em><strong>episode</strong></em>起始的状态选择是随机的，不能固定，避免有些状态永远无法被访问到。下图是书中的算法流程。</p>
+<p>这部分也叫做<em><strong>MC Policy Improvement</strong></em>。
+从给定的$\pi_0$开始，$E$代表策略估计（<em><strong>Policy Estimation</strong></em>），得到动作价值函数$Q_{\pi_0}$，采用贪心算法（<em><strong>greedy</strong></em>）找到使得$Q_\pi(\boldsymbol s, a)$最大的<em><strong>action</strong></em>: $\pi_1(\boldsymbol s) \leftarrow \arg max_{a}Q_{\pi_0}(\boldsymbol s, a)$</p>
+<p>$$
+\pi_0 \xrightarrow{\text{E}}Q_{\pi_0}\xrightarrow{\text{I}}\pi_1\xrightarrow{\text{I}}\pi_2\cdots
+\xrightarrow{\text{I}}\pi_*\xrightarrow{\text{E}}Q_{\pi_ *}
+$$</p>
+<p><a href="https://warden2018.github.io/2025-06-27-rl_3/">参看4.6 广义策略迭代(Generalized Policy Iteration)</a></p>
+<p><img alt="GDI示意图" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_GDI.png">
+<img alt="Monte Carlo ES" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_Monte_Carlo_ES.png"></p>
+<h2 id="on-policy-and-off-policy">On-Policy and Off-Policy<a hidden class="anchor" aria-hidden="true" href="#on-policy-and-off-policy">#</a></h2>
+<p>在学习Q值的过程中，我们会遇到两种情况：</p>
+<ol>
+<li>和环境交互产生数据的策略就是我们正在优化的策略，这种情况叫做<em><strong>on-policy</strong></em>。</li>
+<li>和环境交互产生数据的策略不是我们正在优化的策略，或者有一些是正在优化的策略产生的，有一些不是，这种情况叫做<em><strong>off-policy</strong></em>。</li>
+</ol>
+<p>属于1的算法有：PPO，TRPO，A2C等；属于2的算法有：DQN，DDPG，TD3，SAC等。</p>
+<h2 id="td-learning">TD Learning<a hidden class="anchor" aria-hidden="true" href="#td-learning">#</a></h2>
+<p><em><strong>MC</strong></em>方法需要走完一个完整<em><strong>episode</strong></em>才可以计算$Q_\pi(\boldsymbol s,a)$，但是TD方法不需要，每次采取完行动之后，立刻马上就可以更新状态价值。
+该方法只是在特定的策略$\pi$下，不断迭代找到状态价值。所以，是一种Learning的方法。后面，<em><strong>Sarsa</strong></em>是加入了策略改进的，是<em><strong>GPI</strong></em>的一种。
+<img alt="TD(0)" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/TD_0.png"></p>
+<h2 id="sarsa---state-action-reward-state-action">Sarsa - State Action Reward State Action<a hidden class="anchor" aria-hidden="true" href="#sarsa---state-action-reward-state-action">#</a></h2>
+<p><em><strong>Sarsa</strong></em>是<em><strong>on-policy TD control</strong></em>。
+很自然地，通过上面的<em><strong>TD Learning</strong></em>，一边学习$Q$，一边采用$\epsilon \text{-greedy}$改进策略。具体过程如下：
+<img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/Sarsa.png">
+重点看$Q(S&rsquo;,A&rsquo;)$代表采取行动$A&rsquo;$之后环境给出的状态为$S&rsquo;$的行动价值，后面的<em><strong>Expected Sarsa</strong></em>改进为求所有可能造成$S&rsquo;$的全部$a$的加权平均，希望能够更加快速贴近真实的行动价值。</p>
+<h2 id="q-learning---off-policy-td-control">Q-Learning - off-policy TD control<a hidden class="anchor" aria-hidden="true" href="#q-learning---off-policy-td-control">#</a></h2>
+<p>Q-Learning是一种<em><strong>off-policy</strong></em>的学习+控制的方法，是因为：在每次迭代的过程中，Q函数会更加靠近<em><strong>Optimal Q value</strong></em>，且下一次采取的行动，会根据Q函数的输出，选择要么是最大化Q的动作，要么是为了探索，以较小概率采取其他非最大化Q的动作。</p>
+<p>所以从这个角度理解，就会发现，<em><strong>Q-Learning</strong></em>每次更新的$Q$就是朝向<em><strong>Optimal Policy</strong></em>前进的，或者从控制的角度来看，被控对象看作是环境，如果被控对象从任何状态，采取某一种行动就可以获得最多的<em><strong>Reward</strong></em>，那么，这样的系统下，可能会收敛到同一个数值。但是，实际上，在不同状态下，如果采取相同的动作，会发现，有些动作会导致<em><strong>Reward</strong></em>很低，也就是不合理。所以，不同的状态，需要采取不同的行动，在每次行动中，得到对应的<em><strong>Reward</strong></em>，随着时间的推移，这些<em><strong>Reward</strong></em>积累起来的“求和”就逐渐“逼近了”状态价值的真实值。
+<em><strong>Q-Learning</strong></em>把学习和策略优化分开，每次采取的行动不一定是根据上次学习到的最佳行动价值，就是在比较随机地选择行动的过程中，将“可能不是最好的行动”所带来的最好的价值$\max_a Q(S&rsquo;,a)$加入到<em><strong>TD-Learning</strong></em>的行动价值更新中，以期望更快地调整行动价值，接近最优行动价值。这种做法的好处就是：做更多的探索动作，保证访问到更多的$(\boldsymbol s,a)$对，从而更接近真实的数值，而避免陷入局部的最优，出不来。
+<img alt="Q-Learning" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/QLearning.png"></p>
+<h2 id="expected-sarsa">Expected Sarsa<a hidden class="anchor" aria-hidden="true" href="#expected-sarsa">#</a></h2>
+<p>行动价值的更新算法如下：</p>
+<p>$$
+\begin{aligned}
+&amp; Q(S_t,A_t) \leftarrow Q(S_t,A_t)+\alpha[R_{t+1}+\gamma \mathbb{E}[Q(S_{t+1},A_{t+1})|S_{t+1}] - Q(S_t,A_t)] \\
+&amp; \leftarrow Q(S_t,A_t)+\alpha[R_{t+1}+\gamma \sum_a[\pi(a|S_{t+1})Q(S_{t+1},a)] - Q(S_t,A_t)]
+\end{aligned}
+$$</p>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/BDM_QLearning_Sarsa.png">
+<em><strong>Expected Sarsa</strong></em>在更新的时候，考虑了所有的action，而不是单个的action的行动价值。在这里，不得不提，<a href="https://warden2018.github.io/2026-01-15-rl_5/">4. baseline的引入</a>,这一部分$\sum_a[\pi(a|S_{t+1})Q(S_{t+1},a)]$就是对当前策略在当前状态下的平均水平评估，作为一个基线（<em><strong>baseline</strong></em>），如果某个action的行动价值高于这个基线，那么就说明这个action是一个好action，反之则是一个坏action。根据这个基线作为目标，比根据单个Q作为目标更具有客观性，只不过Q函数的更近进度可能会变慢，达到同样接近<em><strong>Optimal Q Value</strong></em>所需时间变长。
+明显的缺点是需要计算期望，在性能方面差。</p>
+<blockquote>
+<p>Consider the learning algorithm that is just like Q-learning except that instead of the maximum over next state–action pairs it uses the expected value, taking into account how likely each action is under the current policy. Given the next state $S_{t+1}$, this algorithm moves deterministically in the same direction as Sarsa moves in expectation, and accordingly it is called Expected Sarsa.</p>
+</blockquote>
+<h2 id="deep-q-network">Deep Q-Network<a hidden class="anchor" aria-hidden="true" href="#deep-q-network">#</a></h2>
+<p><a href="https://github.com/warden2018/myRL/tree/main/dqn">代码实现</a></p>
+<p>在实际应用中，遇到的问题经常是：$(S,A)$的取值非常广泛，每次迭代很难做到遍历每一个动作价值。
+所以，能不能有一种方法，可以找到一个函数，输入为$(S,A)$（后面会更新成），输出就是价值。很多研究都是提出一个<em><strong>Linear Function Approximator</strong></em>去解决$Q$的估计问题，该论文提出利用<em><strong>ANN</strong></em>，非线性神经网络近似函数：<em><strong>neural network function approximator</strong></em>。
+论文中提到：当尝试使用非线性的函数去逼近$Q$的时候，经常会遇到函数不稳定或者是发散的问题，具体的原因如下：</p>
+<ol>
+<li>agent观察到的序列前后是有关联的，所以在某一段时间内的迭代过程，数据的相似性较大，会“引导”策略向不正确的（和整个数据代表的分布）方向前进，最后验证的时候，会发现在某些场景下<em><strong>agent</strong></em>的输出很优秀，但是其他的场景下表现较差。</li>
+<li>对Q做微小的调整，可能会造成$\pi$剧烈的变动，从而造成之后采集到的数据分布发生剧烈变动，也造成了待估计的$Q$和引入的目标行动价值函数（<em><strong>target action-value function</strong></em>）之间发生剧烈变动。</li>
+</ol>
+<p>解决的思路是：</p>
+<ol>
+<li>利用生物体的回忆过往<em><strong>experience replay</strong></em>，将数据的前后关联打散，并且在输入到学习网络之前，对数据进行平滑处理。</li>
+<li>对$Q$的估计，整体还是使用迭代的方法，不过$\gamma \max_{a&rsquo;}Q(\boldsymbol s&rsquo;,a&rsquo;;\theta^-)$这一项中的$\theta^{-}$不会每次迭代都更新，而是受到一个参数$C$（多少次迭代）控制何时去更新。在论文中，作者称$Q(\boldsymbol s&rsquo;,a&rsquo;;\theta^-)$这一项为<em><strong>target action-value function</strong></em>。
+$$
+\boldsymbol e_t=(\boldsymbol s_t,a_t,r_t,\boldsymbol s_{t+1})
+$$
+如果将上面的这些输入存储起来，构建一个库$D_t={\boldsymbol e_1,\cdots \boldsymbol e_t}$(<em><strong>agent&rsquo;s memory</strong></em>)。
+每次迭代$i$，以下面的函数作为损失函数，通过<em><strong>stochastic gradient decsent</strong></em>方法，可以找到$\nabla\mathcal{L}_ i(\theta_i)$，从而更新$\boldsymbol \theta$，作为下一次计算$Q$的参数。</li>
+</ol>
+<p>$$
+\begin{aligned}
+&amp; \mathcal{L}_ i(\theta_i)=\mathbb{E}_ {(\boldsymbol s, \boldsymbol a, r, \boldsymbol s&rsquo;)\sim U(D)}[r+\gamma \max_ {\boldsymbol a&rsquo;}Q(\boldsymbol s&rsquo;,\boldsymbol a&rsquo;;\theta_i^-)-Q(\boldsymbol s,\boldsymbol a;\theta_i)] \leftarrow \mathbb{E}\text{(reward + max target - current)} &amp;
+\end{aligned}
+$$</p>
+<ul>
+<li>下面的算法中，$\hat Q$就是<em><strong>target action-value function</strong></em>，它的大小由$\theta^-$和$\boldsymbol e_i$决定。</li>
+<li>$\theta$的更新方向是$\nabla\mathcal{L}_i(\theta_i)$</li>
+<li>经过$C$次迭代，更新$\hat Q$
+<img alt="DQN Algorithm" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/DQN_algorithm.png"></li>
+</ul>
+<h2 id="参考">参考<a hidden class="anchor" aria-hidden="true" href="#参考">#</a></h2>
+<p><a href="https://www.youtube.com/watch?v=PnHCvfgC_ZA&amp;t=1073s">David Silver&rsquo;s video</a>
+<a href="https://lilianweng.github.io/posts/2018-02-19-rl-overview/#deep-q-network">Lil&rsquo;Log</a>
+<a href="http://incompleteideas.net/book/the-book-2nd.html">Sutton&rsquo;s Book</a></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>手眼标定</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2025-06-09-rl_4/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>学习RL(四)</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

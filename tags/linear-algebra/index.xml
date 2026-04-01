@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Linear Algebra on Yang&#39;s Blog</title>
+    <link>http://localhost:1313/tags/linear-algebra/</link>
+    <description>Recent content in Linear Algebra on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Mon, 22 Jun 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/linear-algebra/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>矩阵的奇异值分解</title>
+      <link>http://localhost:1313/posts/2020-02-03-linear-algebra-svd/</link>
+      <pubDate>Mon, 22 Jun 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-02-03-linear-algebra-svd/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;Besides having a rather simple geometric explanation, the singular value decomposition offers extremely effective techniques for putting linear algebraic ideas into practice.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;svd分解与四个子空间&#34;&gt;SVD分解与四个子空间&lt;/h2&gt;
+&lt;p&gt;任意的线性变换都可以进行奇异值分解(SVD: Singular Value Decomposition)。之前的一篇博客讲的特征值和特征向量都是针对方阵而言的.这里任意形状的矩阵都能够进行SVD变换。给定一个$m \times n$的矩阵$A$，$rank(A)=r$，这里需要特别说明，我们可以在这个矩阵的行空间和列空间内找到$r$个线性无关的基，即使行、列空间的维度有不同。此处是核心：我们能够参考方阵，对它的特征值特征向量的推导过程得到启发，结合这里矩阵不一定是方阵（行、列维度不同的特点），能否在行子空间内找到一组相互正交的单位基向量，这组基向量通过$A$的变换在列空间内“生产”出一组也是相互正交的向量，并且这组向量正好是列空间的一组基。&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+Av_1=\sigma_1u_1, \cdots, Av_r=\sigma_1u_r
+\end{equation}
+\label{eq1}\tag{1}
+$$&lt;/p&gt;
+&lt;p&gt;($\ref{eq1}$) 中，$v_i(i=0,1,\cdots,r)$是行空间内的单位向量，且$v_i^T \dot v_j=0 (i \neq j)$，$u_i(i=0,1,\cdots,r)$是列空间内的单位向量（Orthonormal basis），且$u_i^T \dot u_j=0 (i \neq j)$，$\sigma_i(i=0,1,\cdots,r)$是列空间内单位向量的伸缩系数。
+写成矩阵乘法的形式如下：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&amp;amp;0&amp;amp;\cdots&amp;amp;0\\ 0&amp;amp;\sigma_2&amp;amp;\cdots&amp;amp;0\\ \vdots&amp;amp;\vdots&amp;amp;\vdots&amp;amp;\vdots\\ 0&amp;amp;\cdots&amp;amp;\cdots&amp;amp;\sigma_r\end{bmatrix}
+\end{equation}
+\label{eq2}\tag{2}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>相似矩阵和矩阵的特征值特征向量</title>
+      <link>http://localhost:1313/posts/2020-01-31-linear-algebra-similarmatrix-eigenvector-eigenvalue/</link>
+      <pubDate>Fri, 31 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-31-linear-algebra-similarmatrix-eigenvector-eigenvalue/</guid>
+      <description>&lt;h2 id=&#34;相似矩阵&#34;&gt;相似矩阵&lt;/h2&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;为什么会产生&lt;strong&gt;相似矩阵&lt;/strong&gt;这个感念？
+场景描述：假定在一个线性空间当中，存在两组不同的基向量。在空间当中任何一个向量在不同的基下，投影的长度、方向都有所不同。当我们对这个向量施加变换的时候，也就是左乘一个变换矩阵，在不同的基下，这个左乘的矩阵形式上面是不同的，但是，它们有一个共同特点，就是相似，因为描述了同一个变换。&lt;/p&gt;
+&lt;h2 id=&#34;正向推导&#34;&gt;正向推导&lt;/h2&gt;
+&lt;p&gt;按照我们刚才看到的这段话，我们可以用数学语言进行一次推导。&lt;/p&gt;
+&lt;h3 id=&#34;同一个向量不同基下的描述&#34;&gt;同一个向量不同基下的描述&lt;/h3&gt;
+&lt;p&gt;假设线性空间内基由$n$个向量组成，我们不妨选取其中两组基：$\begin{bmatrix}\boldsymbol{\alpha_1} &amp;amp; \boldsymbol{\alpha_2} \cdots \boldsymbol{\alpha_n}  \end{bmatrix}$$，$$\begin{bmatrix}\boldsymbol{\beta_1} &amp;amp; \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n}  \end{bmatrix}$。&lt;/p&gt;
+&lt;p&gt;在此空间内的任意向量$\boldsymbol{b}$:&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\boldsymbol{b} = \begin{bmatrix}\boldsymbol{\alpha_1} &amp;amp; \boldsymbol{\alpha_2} \cdots \boldsymbol{\alpha_n}  \end{bmatrix} \boldsymbol{x_1}  \tag{1}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\boldsymbol{b} = \begin{bmatrix}\boldsymbol{\beta_1} &amp;amp; \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n}  \end{bmatrix}\boldsymbol{x_2} \tag{2}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;对于$\boldsymbol{b}$，有：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+[\boldsymbol{\alpha}]\boldsymbol{x_1}=[\boldsymbol{\beta}]\boldsymbol{x_2}
+\label{eq3}\tag{3}
+\end{equation}
+$$&lt;/p&gt;
+&lt;h3 id=&#34;一次线性变换&#34;&gt;一次线性变换&lt;/h3&gt;
+&lt;p&gt;对该向量做一次线性变换，分别得到在两组基下面的坐标向量：$\boldsymbol{y_1},\boldsymbol{y_2}$&lt;/p&gt;
+&lt;p&gt;那么，同一组基下，变换前后的两个向量具有如下的关系：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+T_1 \boldsymbol{x_1}=\boldsymbol{y_1}
+\label{eq4}\tag{4}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+T_2 \boldsymbol{x_2}=\boldsymbol{y_2}
+\label{eq5}\tag{5}
+\end{equation}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>投影矩阵和最小二乘</title>
+      <link>http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/</link>
+      <pubDate>Thu, 30 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/</guid>
+      <description>&lt;h2 id=&#34;投影矩阵&#34;&gt;投影矩阵&lt;/h2&gt;
+&lt;p&gt;之前的一篇&lt;a href=&#34;https://warden2018.github.io/2020/01/29/2020-01-29-Linear-Algebra-4Subspaces-Matrix/&#34;&gt;博客&lt;/a&gt;讲到了矩阵的四个子空间：行空间，列空间，零空间和左零空间。每一个空间唯一性地由这个矩阵决定，因为这个矩阵的列可能线性无关，可能线性相关，如果线性相关，能够在其中找到多少个线性无关的向量。所以，不同的矩阵所形成的对应的四个子空间情况各不相同。我们为了能够理解给定的矩阵四个空间分布情况，就引入了投影矩阵的概念，用来分析在空间中任意向量到这个矩阵的“距离”。下面我们具体看一下：
+首先回顾一下矩阵的列空间$C (A)$和对应的左零空间$N(A^T)$，它们所具有的最优秀的属性就是&lt;strong&gt;垂直&lt;/strong&gt;。
+矩阵$A$的投影矩阵$P$&lt;/p&gt;
+&lt;p&gt;$$
+P=A(A^TA)^{-1}A^T
+$$&lt;/p&gt;
+&lt;p&gt;给定任意一个与$A$列相同维度的向量 $ \boldsymbol b$，它与这个矩阵列空间的关系是什么？我们怎么能够几何直观地理解一下？&lt;/p&gt;
+&lt;p&gt;$$
+A=\begin{bmatrix}
+1&amp;amp;4\\
+2&amp;amp;5\\
+3&amp;amp;6
+\end{bmatrix}
+$$&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;两个列向量$\boldsymbol u=\begin{bmatrix}1\\ 2\\ 3\end{bmatrix},\boldsymbol v=\begin{bmatrix}4\\ 5\\ 6\end{bmatrix}$构成列空间（一个平面）。
+&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix2.png&#34;&gt;
+$\boldsymbol {per}=\begin{bmatrix}1\\ -2\\ 1\end{bmatrix}$是左零空间的一个向量。$\boldsymbol b$是三维空间内的任意向量，我们举出的是一般性的例子，即这个向量不在这两个子空间的任何一个空间内。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果在列空间，那么投影的作用是保留全部&amp;ndash;即该向量保持不变&lt;/li&gt;
+&lt;li&gt;如果在左零空间，那么投影的结果是0&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix3.png&#34;&gt;
+那么，投影矩阵对该任意向量的作用就是将这个向量对列空间投影，得到$\boldsymbol{projection}$向量，称为投影向量，再求一次向量减法运算，得到$\boldsymbol{e}$，误差向量，代表了这个任意给定向量和列空间的差别。&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{projection} + \boldsymbol{e}=\boldsymbol{b}
+$$&lt;/p&gt;
+&lt;h2 id=&#34;投影矩阵的性质&#34;&gt;投影矩阵的性质&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;幂等性（idempotent）：$P=P^2$。这也是投影矩阵的定义。由上面的描述我们可以得到任意向量做一次投影之后的结果已经在原矩阵的列空间内，继续做投影依旧保持第一次的投影不变。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;最小二乘&#34;&gt;最小二乘&lt;/h2&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;已知空间当中的一些点，如何找到一条直线，能够尽可能地离所有点最近？&lt;/p&gt;
+&lt;h2 id=&#34;问题梳理&#34;&gt;问题梳理&lt;/h2&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Least_Square.png&#34;&gt;
+假设二维空间有$n$个点，我们定义点$x=\begin{bmatrix}x_i\ y_i \end{bmatrix}$到直线$y=ax+b$的偏差为$e=ax_i+b-y_i$，最小化这些偏差的平方&lt;/p&gt;
+&lt;p&gt;$$
+S=\sqrt{\sum_{i=0}^n {(e_i)^2}}
+$$&lt;/p&gt;
+&lt;p&gt;为了最小化这个式子，根据式子的特点，我们可以将问题转化成为通过寻找向量的模长的最小值解决。这个向量是：&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol {e}=\begin{bmatrix} e_1&amp;amp; e_e  \cdots &amp;amp; e_n     \end{bmatrix}^T
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{e}=
+\begin{bmatrix} e_1\\  \vdots \\ e_n    \end{bmatrix}=
+\begin{bmatrix} y_1-b-ax_1\\  \vdots \\ y_n-b-ax_n    \end{bmatrix}=
+\begin{bmatrix} y_1\\  \vdots \\ y_n&lt;br&gt;
+\end{bmatrix}-a\begin{bmatrix} x_1\\  \vdots \\  x_n   \end{bmatrix}-
+b\begin{bmatrix} 1\\  \vdots \\ 1   \end{bmatrix}=
+\begin{bmatrix} y_1\\  \vdots \\ y_n   \end{bmatrix}-
+\begin{bmatrix} 1&amp;amp;x_1\\  \vdots &amp;amp;\vdots \\ 1 &amp;amp;x_n  \end{bmatrix}\begin{bmatrix}b\\ a\end{bmatrix}=\boldsymbol{y}-M\boldsymbol{x}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>矩阵的四个子空间</title>
+      <link>http://localhost:1313/posts/2020-01-29-linear-algebra-4subspaces-matrix/</link>
+      <pubDate>Wed, 29 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-29-linear-algebra-4subspaces-matrix/</guid>
+      <description>&lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;线性代数，同微积分一样，是高等数学中两大入门课程之一，它除了是一门数学课程，也是非常好的工具类学科，在很多的领域都有涉及，比如在人工智能领域，机器学习和数值优化。它的研究对象是&lt;strong&gt;向量&lt;/strong&gt;，&lt;strong&gt;向量空间&lt;/strong&gt;（或称线性空间），&lt;strong&gt;线性变换&lt;/strong&gt;和&lt;strong&gt;有限维的线性方程组&lt;/strong&gt;。从线性空间的角度作为切入点，我们能够更好地理解向量，矩阵以及矩阵的特征值、特征向量、相似矩阵、正定矩阵、奇异值分解等等。在这里，我强烈推荐MIT教授William Gilbert Strang的MIT 18.06 Linear Algebra课程，视频能够在youtube或者是网易公开课上找到。他讲解线性代数的思路很容易理解，更重要的是他从空间的角度出发，很自然轻松地解释所有的内容。在他的课程当中，给我印象最深的就是矩阵的四个子空间部分。下面我们逐步深入下去，从空间的概念讲起，逐步到达线性代数最核心的概念：矩阵的四个子空间。&lt;/p&gt;
+&lt;h2 id=&#34;空间&#34;&gt;空间&lt;/h2&gt;
+&lt;p&gt;提到空间，我们首先想到的就是我们生活在三维环境，站在数学的角度上看，这是一个三维的欧几里得空间。经过数学家们的不断思考，他们用最凝练的语言描述空间的共同特点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;由无穷多的点组成；&lt;/li&gt;
+&lt;li&gt;不同点之间存在着可以描述的相对关系；&lt;/li&gt;
+&lt;li&gt;在空间中通过点定义长度、角度；&lt;/li&gt;
+&lt;li&gt;容纳运动，或者更宽泛来讲就是容纳变换。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;上面的这些性质中，最最关键的是第4条。第1、2条只能说是空间的基础，不算是空间特有的性质，凡是讨论数学问题，都得有一个集合，大多数还得在这个集合上定义一些结构（关系），并不是说有了这些就算是空间。而第3条太特殊，其他的空间不需要具备，更不是关键的性质。只有第4条是空间的本质，也就是说，容纳运动是空间的本质特征。 有句话叫做：“静止是相对的，运动才是绝对的。”我们思考的起点，必须要做到“运动”，即变换是运动，状态其实也是运动，只不过这个特殊的运动是从我们很难发觉的特殊起点开始的。这点我们将在后面讲到。&lt;/p&gt;
+&lt;h2 id=&#34;线性空间&#34;&gt;线性空间&lt;/h2&gt;
+&lt;p&gt;线性空间（Vector Space or Linear Space）的定义源于许多数学对象本身如何归类，例如几何向量、同型矩阵、实函数等等，它们满足相同的计算规则，都能够相加以及用数相乘，将它们称为&lt;strong&gt;向量&lt;/strong&gt;。向量的一个集合$V$，如果对于$V$中的任意向量$u$,$v$和一个数集$F$内的数$a$,$b$，满足：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;加法封闭性：$(u+v)\in V$&lt;/li&gt;
+&lt;li&gt;数乘封闭性：$au \in V$,$(au+bv)\in V$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;那么，这个空间就是一个线性空间。&lt;/p&gt;
+&lt;p&gt;线性空间中的对象如何表达？&lt;/p&gt;
+&lt;p&gt;我的理解：两个关键点：一个是一组合适的基，另一个是这些基的有序求和（坐标）。
+$$
+\begin{bmatrix}	  &lt;br&gt;
+&amp;amp; a_{0,0} &amp;amp; a_{0,1} &amp;amp; a_{0, 2 }&amp;amp; \cdots &amp;amp; a_{0, n -1} \\
+&amp;amp; a_{1, 0 } &amp;amp; a_{1, 1} &amp;amp; a_{1 ,2 }&amp;amp; \cdots &amp;amp; a_{1 ,n -1}\\
+&amp;amp; \vdots  &amp;amp; \vdots&amp;amp; \vdots &amp;amp; \ddots &amp;amp; \vdots \\ &lt;br&gt;
+&amp;amp; a_{n-1 ,0 }&amp;amp; a_{n-1 ,1} &amp;amp; a_{n-1, 2 }&amp;amp; \cdots &amp;amp; a_{n-1, n -1} \\
+\end{bmatrix}
+\begin{bmatrix}
+&amp;amp; k_0 \\
+&amp;amp; k_1  \\
+&amp;amp; \vdots \\
+&amp;amp; k_{n-1}
+\end{bmatrix}
+=k_0
+\begin{bmatrix}
+a_{0,0}\\
+a_{1,0} \\
+\vdots  \\
+a_{n-1,0}
+\end{bmatrix}
++k_1
+\begin{bmatrix}
+a_{0,1}\\
+a_{1,1} \\
+\vdots \\
+a_{n-1,1}
+\end{bmatrix}
++\cdots+k_{n-1}
+\begin{bmatrix}
+a_{0,n-1}\\
+a_{1,n-1} \\
+\vdots  \\
+a_{n-1,n-1}
+\end{bmatrix}
+$$&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

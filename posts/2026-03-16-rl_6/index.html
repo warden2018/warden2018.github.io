@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>学习RL(六) | Yang&#39;s Blog</title>
+<meta name="keywords" content="强化学习">
+<meta name="description" content="DDPG与TD3：连续动作空间的深度确定性策略梯度
+
+Open AI Spinning Up - DDPG - DDPG（Deep Deterministic Policy Gradient）
+Deep Deterministic Policy Gradient (DDPG) is an algorithm which concurrently learns a Q-function and a policy. It uses off-policy data and the Bellman equation to learn the Q-function, and uses the Q-function to learn the policy.
+
+本文记录我在学习DDPG（Deep Deterministic Policy Gradient）和TD3（Twin Delayed DDPG）的过程，梳理清楚他们产生的背景，核心思想，特点以及我在实现过程中遇到的问题记录和解决。
+1. 背景与动机
+DQN在离散动作空间表现出色。然而，在许多实际控制任务中（如机器人控制、自动驾驶等），动作空间是连续的。DQN无法计算所有的$Q(s,a)$,代价太大。随着动作空间维度的提升，离散化动作空间带来的成本增加呈指数级别。
+DDPG正是为解决连续动作空间控制问题而设计的。
+2. DDPG核心思想
+参考Policy Gradient和PPO，DDPG和TD3想要通过梯度下降的方法对Policy做优化(调节$\theta$)，在训练结束的时候，具有一个最优化的$\theta$，使得$Q(s,a)$$\big(a=\mu_\theta(s)\big )$最大化，还要借鉴DQN当中使用到的replay buffer: $\mathcal D$和target network等技术，来提升训练的稳定性和效率。DQN通过Q网络1和target_Q网络2分别近似$Q^\star(s,a)$和$Q^\star(s&rsquo;,a&rsquo;)$，
+根据Bellman Optimality Equation:">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2026-03-16-rl_6/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2026-03-16-rl_6/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      学习RL(六)
+    </h1>
+    <div class="post-meta"><span title='2026-03-16 00:00:00 +0000 UTC'>2026年3月16日</span>&nbsp;·&nbsp;<span>45 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2026-03-16-RL_6.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#ddpg与td3连续动作空间的深度确定性策略梯度">DDPG与TD3：连续动作空间的深度确定性策略梯度</a></li>
+    <li><a href="#1-背景与动机">1. 背景与动机</a></li>
+    <li><a href="#2-ddpg核心思想">2. DDPG核心思想</a></li>
+    <li><a href="#3-ddpg的特点">3 DDPG的特点</a>
+      <ul>
+        <li><a href="#31-确定性策略">3.1 确定性策略</a></li>
+        <li><a href="#32-actor-critic架构">3.2 Actor-Critic架构</a></li>
+        <li><a href="#33-经验回放与目标网络">3.3 经验回放与目标网络</a></li>
+        <li><a href="#34-探索策略">3.4 探索策略</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-ddpg算法流程">4. DDPG算法流程</a></li>
+    <li><a href="#5-td3双延迟深度确定性策略梯度">5. TD3：双延迟深度确定性策略梯度</a>
+      <ul>
+        <li><a href="#51-三大改进">5.1 三大改进</a></li>
+        <li><a href="#52-td3算法伪代码">5.2 TD3算法伪代码</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-实现细节与经验">5. 实现细节与经验</a>
+      <ul>
+        <li><a href="#51-关键实现要点">5.1 关键实现要点</a></li>
+        <li><a href="#52-常见问题与调参经验">5.2 常见问题与调参经验</a></li>
+        <li><a href="#53-超参数推荐">5.3 超参数推荐</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-pytorch代码实现">6. PyTorch代码实现</a>
+      <ul>
+        <li><a href="#61-actor网络">6.1 Actor网络</a></li>
+        <li><a href="#62-q-critic网络">6.2 Q-Critic网络</a></li>
+        <li><a href="#63-double-q-critic网络td3">6.3 Double Q-Critic网络（TD3）</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-stable-baselines3使用示例">7. Stable-Baselines3使用示例</a></li>
+    <li><a href="#8-总结">8. 总结</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="ddpg与td3连续动作空间的深度确定性策略梯度">DDPG与TD3：连续动作空间的深度确定性策略梯度<a hidden class="anchor" aria-hidden="true" href="#ddpg与td3连续动作空间的深度确定性策略梯度">#</a></h2>
+<blockquote>
+<p><a href="https://spinningup.openai.com/en/latest/algorithms/ddpg.html">Open AI Spinning Up - DDPG</a> - DDPG（Deep Deterministic Policy Gradient）
+Deep Deterministic Policy Gradient (DDPG) is an algorithm which concurrently learns a Q-function and a policy. It uses off-policy data and the Bellman equation to learn the Q-function, and uses the Q-function to learn the policy.</p>
+</blockquote>
+<p>本文记录我在学习DDPG（Deep Deterministic Policy Gradient）和TD3（Twin Delayed DDPG）的过程，梳理清楚他们产生的背景，核心思想，特点以及我在实现过程中遇到的问题记录和解决。</p>
+<h2 id="1-背景与动机">1. 背景与动机<a hidden class="anchor" aria-hidden="true" href="#1-背景与动机">#</a></h2>
+<p><a href="https://warden2018.github.io/2025/06/27/2025-06-27-RL_4/">DQN</a>在离散动作空间表现出色。然而，在许多实际控制任务中（如机器人控制、自动驾驶等），动作空间是连续的。DQN无法计算所有的$Q(s,a)$,代价太大。随着动作空间维度的提升，离散化动作空间带来的成本增加呈指数级别。</p>
+<p>DDPG正是为解决连续动作空间控制问题而设计的。</p>
+<h2 id="2-ddpg核心思想">2. DDPG核心思想<a hidden class="anchor" aria-hidden="true" href="#2-ddpg核心思想">#</a></h2>
+<p>参考<a href="https://warden2018.github.io/2026-01-15-rl_5/">Policy Gradient</a>和<a href="https://warden2018.github.io/2026/01/15/2026-01-15-RL_6/">PPO</a>，DDPG和TD3想要通过梯度下降的方法对Policy做优化(调节$\theta$)，在训练结束的时候，具有一个最优化的$\theta$，使得$Q(s,a)$$\big(a=\mu_\theta(s)\big )$最大化，还要借鉴DQN当中使用到的<em><strong>replay buffer</strong></em>: $\mathcal D$和<em><strong>target network</strong></em>等技术，来提升训练的稳定性和效率。DQN通过Q网络<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>和target_Q网络<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>分别近似$Q^\star(s,a)$和$Q^\star(s&rsquo;,a&rsquo;)$，</p>
+<p>根据Bellman Optimality Equation:</p>
+<p>$$
+Q^\star(s,a) = \mathbb{E}[r(s,a) + \gamma \max_{a&rsquo;} Q^\star(s&rsquo;, a&rsquo;)]
+$$</p>
+<p>从target Q网络中获取最优action的代码：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>self<span style="color:#f92672">.</span>Q_target_network(non_final_next_states)<span style="color:#f92672">.</span>max(<span style="color:#ae81ff">1</span>)<span style="color:#f92672">.</span>values
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>通过$\mathcal D$中的采样数据形成batch,计算上式中的TD目标$r + \gamma \max_{a&rsquo;} Q^\star(s&rsquo;, a&rsquo;)$。</p>
+<p>针对连续动作空间，DDPG相对于DQN改进的地方主要在于，DQN网络输入只有状态$s$，输出是每个离散动作对应的Q值，无法利用动作网络$\mu(s)$的输出直接计算Q值，那么，就改造$Q _{\phi}$网络的输入为状态和动作的组合$(s,a)$，输出对应的Q值，这样就可以直接利用$\mu(s)$的输出作为Q网络的输入，根据计算结果来优化$\mu(s)$的参数$\theta$，使得在状态$s$下输出的动作$a$能够最大化Q值。</p>
+<p>为了找到$\max_{a&rsquo;} Q^\star(s&rsquo;, a&rsquo;)$里面的$a&rsquo;$,使用$\mu _{\theta _{target}}(s&rsquo;)$得到，即target_actor。并且每隔一段时间就将critic和actor网络的参数复制到target_critc和target_actor网络中(或者是软更新)。</p>
+<p>所以优化的目标就是: $Q^\star(s,a)\approx Q_{\phi} ^\star (s,\mu_\theta(s))$：被优化的参数是$\theta$和$\phi$。</p>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/DDPG_critic_network.excalidraw.png"></p>
+<p>下面是DDPG的核心优化流程：</p>
+<ul>
+<li>网络$Q_\phi(s,a)$用于评价当前policy $\mu_{\theta}$的critic，网络$Q_{\phi_{targ}}(s,a)$用于给出目标价值，主要目的是提供稳定的训练目标参考<sup id="fnref1:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>。借助MSBE(mean-squared Bellman Error)更新Critic网络$Q_\phi$的参数$\phi$：</li>
+</ul>
+<p>$$
+\mathcal L(\phi,\mathcal D) = \mathbb E_{(s,a,r,s&rsquo;)\sim \mathcal D} \bigg[ \bigg( r + \gamma(1-d) Q_{\phi_{targ}}(s&rsquo;,\mu_{\theta_{targ}}(s&rsquo;)) - Q_\phi(s,a) \bigg)^2 \bigg]
+$$</p>
+<p>$d=1 \ if \ s&rsquo; \ is \ terminal \ else \ 0$，$\mathcal D$是经验回放缓冲区。</p>
+<ul>
+<li>actor网络$\mu_\theta(s)$的更新:
+$Q_{\phi}(s,a)$更新之后，Actor网络$\mu_\theta$优化的目标是：</li>
+</ul>
+<p>$$
+\max_{\theta} \mathbb{E}_{s \sim \mathcal{D}} [Q _{\phi}(s, \mu _{\theta}(s))]
+$$</p>
+<ul>
+<li>$\mu_\theta$更新之后，对环境重新交互，生成的$(s,a,r,s&rsquo;)$加入回放缓冲区$\mathcal D$，重复上述过程。</li>
+</ul>
+<h2 id="3-ddpg的特点">3 DDPG的特点<a hidden class="anchor" aria-hidden="true" href="#3-ddpg的特点">#</a></h2>
+<h3 id="31-确定性策略">3.1 确定性策略<a hidden class="anchor" aria-hidden="true" href="#31-确定性策略">#</a></h3>
+<p>与PPO等随机策略不同，DDPG采用<strong>确定性策略</strong>（Deterministic Policy）：</p>
+<p>$$
+a = \mu_\theta(s)
+$$</p>
+<p>这意味着给定状态时，Actor直接输出一个确定的动作，而不是动作的概率分布。</p>
+<h3 id="32-actor-critic架构">3.2 Actor-Critic架构<a hidden class="anchor" aria-hidden="true" href="#32-actor-critic架构">#</a></h3>
+<p>DDPG采用经典的Actor-Critic架构：</p>
+<ul>
+<li><strong>Actor（策略网络）</strong>：$\mu_\theta(s)$ - 输入状态，输出确定性动作</li>
+<li><strong>Critic（价值网络）</strong>：$Q_\phi(s, a)$ - 输入状态和动作，输出Q值</li>
+</ul>
+<p>Critic网络的输入是<strong>状态+动作</strong>的组合，这是与PPO的重要区别。</p>
+<h3 id="33-经验回放与目标网络">3.3 经验回放与目标网络<a hidden class="anchor" aria-hidden="true" href="#33-经验回放与目标网络">#</a></h3>
+<p>DDPG借鉴了DQN的两个关键技术：</p>
+<ol>
+<li><strong>经验回放（Replay Buffer）</strong>：存储$(s_t, a_t, r_t, s_{t+1})$ tuples，训练时随机采样，打破时间相关性</li>
+<li><strong>目标网络（Target Network）</strong>：使用延迟更新的目标网络计算TD目标，提高训练稳定性</li>
+</ol>
+<p><em><strong>经验回放的四大优势</strong></em></p>
+<p>使用replay buffer有以下几个关键优势：</p>
+<ol>
+<li>
+<p><strong>打破时序关联</strong>：一条轨迹中的$(s_t,a,r,s_{t+1})$具有强相关性，直接用于训练会导致网络难以收敛。随机采样打散了这种关联。</p>
+</li>
+<li>
+<p><strong>提高数据效率</strong>：在奖励稀疏的环境中（如机器人抓取），智能体可能需要探索很长时间才能获得少量有价值的transition。经验回放可以重复利用历史数据，多次从中采样进行更新，显著降低了数据采集成本。</p>
+</li>
+<li>
+<p><strong>支持优先采样</strong>：可以在不同训练阶段选择更有价值的transition进行学习。例如，当需要更多更新Actor时，可以优先选择那些更能提升策略的样本。</p>
+</li>
+<li>
+<p><strong>容纳多样化经验</strong>：回放缓冲区可以存储来自不同策略产生的数据，使最终学到的策略能够适应多变的环境，增强泛化能力。</p>
+</li>
+</ol>
+<h3 id="34-探索策略">3.4 探索策略<a hidden class="anchor" aria-hidden="true" href="#34-探索策略">#</a></h3>
+<p>由于采用确定性策略，为了保证数据的多样性，需要对$\mu_\theta(s)$添加探索噪声:</p>
+<p>$$
+a = \mu_\theta(s) + \mathcal{N}
+$$
+我在实现get_action函数时候，犯了错：网络的输出本质上是一个在[-1, 1]范围内的动作值（因为Actor网络最后一层使用了tanh激活函数），所以，需要先将噪声也映射到[-1, 1]范围内，再和归一化的动作相加，最后再将动作映射到环境的实际动作空间：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">get_action</span>(self, obs, noise_scale<span style="color:#f92672">=</span><span style="color:#66d9ef">None</span>):
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            get action according to current policy self.actor and exploration noise,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            clip the result to valid one
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            Parameters:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">				state - one observation from env
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">							Shape: (dimension of observation,1)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                noise_scale - noise reduce scalar，None means use  self.action_noise, otherwise use 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                            noise_scale * self.action_noise
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">			Return:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">				action_with_noise - output from actor_model is mean_action;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                clip (mean_action + noise) with the action_space_high and action_space_low to make sure output is in boundary
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                                Type: tensor
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># mean action</span>
+</span></span><span style="display:flex;"><span>        mean <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>actor(obs)
+</span></span><span style="display:flex;"><span>        mean_action <span style="color:#f92672">=</span> mean<span style="color:#f92672">.</span>detach()<span style="color:#f92672">.</span>numpy()<span style="color:#f92672">.</span>flatten()
+</span></span><span style="display:flex;"><span>        noise_scale <span style="color:#f92672">=</span> noise_scale <span style="color:#66d9ef">if</span> noise_scale <span style="color:#f92672">is</span> <span style="color:#f92672">not</span> <span style="color:#66d9ef">None</span> <span style="color:#66d9ef">else</span> self<span style="color:#f92672">.</span>action_noise
+</span></span><span style="display:flex;"><span>        noise <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>random<span style="color:#f92672">.</span>normal(<span style="color:#ae81ff">0</span>, noise_scale, size<span style="color:#f92672">=</span>mean_action<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>        action_with_noise <span style="color:#f92672">=</span> mean_action <span style="color:#f92672">+</span> noise
+</span></span><span style="display:flex;"><span>        action_with_noise <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>clip(action_with_noise,<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>        action_with_noise <span style="color:#f92672">=</span> action_with_noise <span style="color:#f92672">*</span> (self<span style="color:#f92672">.</span>action_space_high <span style="color:#f92672">-</span> self<span style="color:#f92672">.</span>action_space_low) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> (self<span style="color:#f92672">.</span>action_space_high <span style="color:#f92672">+</span> self<span style="color:#f92672">.</span>action_space_low) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> action_with_noise
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="4-ddpg算法流程">4. DDPG算法流程<a hidden class="anchor" aria-hidden="true" href="#4-ddpg算法流程">#</a></h2>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/ddpg.svg"></p>
+<h2 id="5-td3双延迟深度确定性策略梯度">5. TD3：双延迟深度确定性策略梯度<a hidden class="anchor" aria-hidden="true" href="#5-td3双延迟深度确定性策略梯度">#</a></h2>
+<p>TD3是DDPG的改进版本，针对DDPG的Q值过估计问题提出了三项关键改进。</p>
+<h3 id="51-三大改进">5.1 三大改进<a hidden class="anchor" aria-hidden="true" href="#51-三大改进">#</a></h3>
+<p>在使用DDPG训练过程中，遇到了Q值过估计的问题，导致训练不稳定，典型的现象就是reward先上升，然后下降，无法逼近预期的reward。TD3通过以下三项改进来解决这个问题：</p>
+<ol>
+<li>截断双Q学习（Clipped Double Q-Learning）</li>
+</ol>
+<p>使用两个独立的Critic网络$Q_{\phi_1} ^{\text{target}}$和$Q_{\phi_2}^{\text{target}}$在代码中是<code>class DoubleQCritic</code>:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DoubleQCritic</span>(nn<span style="color:#f92672">.</span>Module):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__init__</span>(self, obs_size, action_size, output_size,net_width<span style="color:#f92672">=</span><span style="color:#ae81ff">128</span>):
+</span></span><span style="display:flex;"><span>        super(DoubleQCritic, self)<span style="color:#f92672">.</span><span style="color:#a6e22e">__init__</span>()
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>crtic1_layer1 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(obs_size <span style="color:#f92672">+</span> action_size, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>crtic1_layer2 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic1_output_layer <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, output_size)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>crtic2_layer1 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(obs_size <span style="color:#f92672">+</span> action_size, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>crtic2_layer2 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic2_output_layer <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, output_size)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">forward</span>(self, obs, action):
+</span></span><span style="display:flex;"><span>        sa <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>cat([obs, action], <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>        critic1_actv1 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>crtic1_layer1(sa))
+</span></span><span style="display:flex;"><span>        critic1_actv2 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>crtic1_layer2(critic1_actv1))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        criti2_actv1 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>crtic2_layer1(sa))
+</span></span><span style="display:flex;"><span>        criti2_actv2 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>crtic2_layer2(criti2_actv1))
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> self<span style="color:#f92672">.</span>critic1_output_layer(critic1_actv2), self<span style="color:#f92672">.</span>critic2_output_layer(criti2_actv2)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>取较小的Q值作为目标：</p>
+<p>$$
+y = r + \gamma \min_{i=1,2} Q_{\phi_i}^{\text{target}}(s&rsquo;, \mu_{\theta_{\text{target}}}(s&rsquo;) + \epsilon)
+$$</p>
+<ol start="2">
+<li>目标策略平滑（Target Policy Smoothing）</li>
+</ol>
+<p>在目标动作上添加小的随机噪声，防止Actor过度拟合Q函数的尖峰：</p>
+<p>$$
+a&rsquo; = \mu_{\theta_{\text{target}}}(s&rsquo;) + \text{clip}(\epsilon, -c, c)
+$$
+其中$\epsilon \sim \text{clip}(\mathcal{N}(0, \sigma), -c, c)$为target policy noise:</p>
+<blockquote>
+<p>Trick Three: Target Policy Smoothing. TD3 adds noise to the target action, to make it harder for the policy to exploit Q-function errors by smoothing out Q along changes in action.</p>
+</blockquote>
+<ol start="3">
+<li>延迟策略更新（Delayed Policy Updates）</li>
+</ol>
+<p>Actor网络更新频率低于Critic网络（例如每2步更新一次Actor），避免策略在Critic未收敛时产生错误引导。</p>
+<h3 id="52-td3算法伪代码">5.2 TD3算法伪代码<a hidden class="anchor" aria-hidden="true" href="#52-td3算法伪代码">#</a></h3>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/td3.svg"></p>
+<h2 id="5-实现细节与经验">5. 实现细节与经验<a hidden class="anchor" aria-hidden="true" href="#5-实现细节与经验">#</a></h2>
+<h3 id="51-关键实现要点">5.1 关键实现要点<a hidden class="anchor" aria-hidden="true" href="#51-关键实现要点">#</a></h3>
+<ol>
+<li>
+<p><strong>动作范围映射</strong>：Actor网络输出通常在[-1, 1]，需要根据环境action_space映射到实际范围：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>action <span style="color:#f92672">=</span> action <span style="color:#f92672">*</span> (env<span style="color:#f92672">.</span>action_space<span style="color:#f92672">.</span>high <span style="color:#f92672">-</span> env<span style="color:#f92672">.</span>action_space<span style="color:#f92672">.</span>low) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> (env<span style="color:#f92672">.</span>action_space<span style="color:#f92672">.</span>high <span style="color:#f92672">+</span> env<span style="color:#f92672">.</span>action_space<span style="color:#f92672">.</span>low) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p><strong>目标网络软更新</strong>：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> target_param, param <span style="color:#f92672">in</span> zip(target<span style="color:#f92672">.</span>parameters(), online<span style="color:#f92672">.</span>parameters()):
+</span></span><span style="display:flex;"><span>    target_param<span style="color:#f92672">.</span>data<span style="color:#f92672">.</span>copy_(tau <span style="color:#f92672">*</span> param<span style="color:#f92672">.</span>data <span style="color:#f92672">+</span> (<span style="color:#ae81ff">1</span> <span style="color:#f92672">-</span> tau) <span style="color:#f92672">*</span> target_param<span style="color:#f92672">.</span>data)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>训练前，replay buffer需要预热，收集一定数量的随机交互数据，确保训练初期有足够的样本。</li>
+</ol>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> i_episode <span style="color:#f92672">in</span> count():
+</span></span><span style="display:flex;"><span> 	<span style="color:#75715e"># each episode should env.reset() first</span>
+</span></span><span style="display:flex;"><span> 	observation, info <span style="color:#f92672">=</span> env<span style="color:#f92672">.</span>reset()
+</span></span><span style="display:flex;"><span> 	state <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor(observation, dtype<span style="color:#f92672">=</span>torch<span style="color:#f92672">.</span>float32)<span style="color:#f92672">.</span>unsqueeze(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span> 	<span style="color:#66d9ef">for</span> t <span style="color:#f92672">in</span> count():
+</span></span><span style="display:flex;"><span> 		<span style="color:#66d9ef">if</span> currentStep <span style="color:#f92672">&gt;</span> time_to_update:
+</span></span><span style="display:flex;"><span> 			action <span style="color:#f92672">=</span> ddpg<span style="color:#f92672">.</span>get_action(state)
+</span></span><span style="display:flex;"><span> 		<span style="color:#66d9ef">else</span>:
+</span></span><span style="display:flex;"><span> 			action <span style="color:#f92672">=</span> env<span style="color:#f92672">.</span>action_space<span style="color:#f92672">.</span>sample()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> 		observation, reward, terminated, truncated, _ <span style="color:#f92672">=</span> env<span style="color:#f92672">.</span>step(action)
+</span></span><span style="display:flex;"><span> 		currentStep <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span> 		episode_reward <span style="color:#f92672">+=</span> reward
+</span></span><span style="display:flex;"><span> 		done <span style="color:#f92672">=</span> terminated <span style="color:#f92672">or</span> truncated
+</span></span><span style="display:flex;"><span> 		<span style="color:#66d9ef">if</span> terminated:
+</span></span><span style="display:flex;"><span> 			next_state <span style="color:#f92672">=</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span> 		<span style="color:#66d9ef">else</span>:
+</span></span><span style="display:flex;"><span> 			next_state <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor(observation, dtype<span style="color:#f92672">=</span>torch<span style="color:#f92672">.</span>float32)<span style="color:#f92672">.</span>unsqueeze(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> 		reward_tensor <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor([reward])
+</span></span><span style="display:flex;"><span> 		action_tensor <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor(action, dtype<span style="color:#f92672">=</span>torch<span style="color:#f92672">.</span>float32)<span style="color:#f92672">.</span>unsqueeze(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> 		ddpg<span style="color:#f92672">.</span>add_replay_memory(state, action_tensor, next_state, reward_tensor)
+</span></span><span style="display:flex;"><span> 		state <span style="color:#f92672">=</span> next_state
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> 		<span style="color:#66d9ef">if</span> currentStep <span style="color:#f92672">&gt;</span> time_to_update:
+</span></span><span style="display:flex;"><span> 			ddpg<span style="color:#f92672">.</span>train_model()
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+</ol>
+<h3 id="52-常见问题与调参经验">5.2 常见问题与调参经验<a hidden class="anchor" aria-hidden="true" href="#52-常见问题与调参经验">#</a></h3>
+<p>根据实际实现经验，DDPG/TD3常见问题：</p>
+<ol>
+<li>
+<p><strong>Q值过估计</strong>：训练过程中Q值可能急剧上升，导致策略崩溃</p>
+<ul>
+<li>解决：使用TD3的双Q网络和目标策略平滑</li>
+</ul>
+</li>
+<li>
+<p><strong>训练不稳定</strong>：rewards先变大后变小</p>
+<ul>
+<li>解决：使用较小的学习率，TD3的延迟更新策略</li>
+</ul>
+</li>
+<li>
+<p><strong>探索不足</strong>：动作噪声衰减过快</p>
+<ul>
+<li>解决：保持恒定的探索噪声，或使用递减策略</li>
+</ul>
+</li>
+</ol>
+<h3 id="53-超参数推荐">5.3 超参数推荐<a hidden class="anchor" aria-hidden="true" href="#53-超参数推荐">#</a></h3>
+<table>
+  <thead>
+      <tr>
+          <th>参数</th>
+          <th>DDPG</th>
+          <th>TD3</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Actor学习率</td>
+          <td>1e-4</td>
+          <td>1e-3</td>
+      </tr>
+      <tr>
+          <td>Critic学习率</td>
+          <td>1e-3</td>
+          <td>1e-3</td>
+      </tr>
+      <tr>
+          <td>折扣因子γ</td>
+          <td>0.99</td>
+          <td>0.99</td>
+      </tr>
+      <tr>
+          <td>目标网络保留率</td>
+          <td>0.996</td>
+          <td>0.995</td>
+      </tr>
+      <tr>
+          <td>批量大小</td>
+          <td>256</td>
+          <td>256</td>
+      </tr>
+      <tr>
+          <td>噪声σ</td>
+          <td>0.1</td>
+          <td>0.1</td>
+      </tr>
+      <tr>
+          <td>目标噪声裁剪c</td>
+          <td>-</td>
+          <td>0.5</td>
+      </tr>
+      <tr>
+          <td>延迟更新频率d</td>
+          <td>-</td>
+          <td>2</td>
+      </tr>
+  </tbody>
+</table>
+<p><a href="https://github.com/warden2018/myRL/tree/main/configs">我的超参配置</a></p>
+<h2 id="6-pytorch代码实现">6. PyTorch代码实现<a hidden class="anchor" aria-hidden="true" href="#6-pytorch代码实现">#</a></h2>
+<h3 id="61-actor网络">6.1 Actor网络<a hidden class="anchor" aria-hidden="true" href="#61-actor网络">#</a></h3>
+<p>Actor网络输入状态，输出一个确定性动作（使用tanh将输出限制在[-1, 1]）：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch.nn <span style="color:#66d9ef">as</span> nn
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch.nn.functional <span style="color:#66d9ef">as</span> F
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Actor</span>(nn<span style="color:#f92672">.</span>Module):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__init__</span>(self, input_size, output_size, net_width<span style="color:#f92672">=</span><span style="color:#ae81ff">128</span>):
+</span></span><span style="display:flex;"><span>        super(Actor, self)<span style="color:#f92672">.</span><span style="color:#a6e22e">__init__</span>()
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>layer1 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(input_size, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>layer2 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>output_layer <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, output_size)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">forward</span>(self, obs):
+</span></span><span style="display:flex;"><span>        actv1 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>layer1(obs))
+</span></span><span style="display:flex;"><span>        actv2 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>layer2(actv1))
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> torch<span style="color:#f92672">.</span>tanh(self<span style="color:#f92672">.</span>output_layer(actv2))  <span style="color:#75715e"># 输出范围 [-1, 1]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="62-q-critic网络">6.2 Q-Critic网络<a hidden class="anchor" aria-hidden="true" href="#62-q-critic网络">#</a></h3>
+<p>Critic网络输入状态和动作的组合，输出Q值：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">QCritic</span>(nn<span style="color:#f92672">.</span>Module):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__init__</span>(self, obs_size, action_size, output_size, net_width<span style="color:#f92672">=</span><span style="color:#ae81ff">128</span>):
+</span></span><span style="display:flex;"><span>        super(QCritic, self)<span style="color:#f92672">.</span><span style="color:#a6e22e">__init__</span>()
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>layer1 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(obs_size <span style="color:#f92672">+</span> action_size, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>layer2 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>output_layer <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, output_size)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">forward</span>(self, obs, action):
+</span></span><span style="display:flex;"><span>        sa <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>cat([obs, action], <span style="color:#ae81ff">1</span>)  <span style="color:#75715e"># 状态与动作拼接</span>
+</span></span><span style="display:flex;"><span>        actv1 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>layer1(sa))
+</span></span><span style="display:flex;"><span>        actv2 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>layer2(actv1))
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> self<span style="color:#f92672">.</span>output_layer(actv2)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="63-double-q-critic网络td3">6.3 Double Q-Critic网络（TD3）<a hidden class="anchor" aria-hidden="true" href="#63-double-q-critic网络td3">#</a></h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DoubleQCritic</span>(nn<span style="color:#f92672">.</span>Module):
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;双Q Critic，用于TD3&#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__init__</span>(self, obs_size, action_size, output_size, net_width<span style="color:#f92672">=</span><span style="color:#ae81ff">128</span>):
+</span></span><span style="display:flex;"><span>        super(DoubleQCritic, self)<span style="color:#f92672">.</span><span style="color:#a6e22e">__init__</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 第一个Q网络</span>
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic1_layer1 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(obs_size <span style="color:#f92672">+</span> action_size, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic1_layer2 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic1_output_layer <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, output_size)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 第二个Q网络</span>
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic2_layer1 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(obs_size <span style="color:#f92672">+</span> action_size, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic2_layer2 <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, net_width)
+</span></span><span style="display:flex;"><span>        self<span style="color:#f92672">.</span>critic2_output_layer <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Linear(net_width, output_size)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">forward</span>(self, obs, action):
+</span></span><span style="display:flex;"><span>        sa <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>cat([obs, action], <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># Q1</span>
+</span></span><span style="display:flex;"><span>        c1_actv1 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>critic1_layer1(sa))
+</span></span><span style="display:flex;"><span>        c1_actv2 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>critic1_layer2(c1_actv1))
+</span></span><span style="display:flex;"><span>        q1 <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>critic1_output_layer(c1_actv2)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># Q2</span>
+</span></span><span style="display:flex;"><span>        c2_actv1 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>critic2_layer1(sa))
+</span></span><span style="display:flex;"><span>        c2_actv2 <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>relu(self<span style="color:#f92672">.</span>critic2_layer2(c2_actv1))
+</span></span><span style="display:flex;"><span>        q2 <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>critic2_output_layer(c2_actv2)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> q1, q2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/td3_bipedal_hardcore.png"></p>
+<h2 id="7-stable-baselines3使用示例">7. Stable-Baselines3使用示例<a hidden class="anchor" aria-hidden="true" href="#7-stable-baselines3使用示例">#</a></h2>
+<p>除了自己实现，<a href="https://github.com/DLR-RM/stable-baselines3">Stable-Baselines3</a>中提供了高质量的TD3和DDPG实现：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> stable_baselines3 <span style="color:#f92672">import</span> TD3, DDPG
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># TD3</span>
+</span></span><span style="display:flex;"><span>model <span style="color:#f92672">=</span> TD3(<span style="color:#e6db74">&#34;MlpPolicy&#34;</span>, <span style="color:#e6db74">&#34;HalfCheetah-v4&#34;</span>, verbose<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>model<span style="color:#f92672">.</span>learn(total_timesteps<span style="color:#f92672">=</span><span style="color:#ae81ff">10000</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># DDPG</span>
+</span></span><span style="display:flex;"><span>model <span style="color:#f92672">=</span> DDPG(<span style="color:#e6db74">&#34;MlpPolicy&#34;</span>, <span style="color:#e6db74">&#34;Pendulum-v1&#34;</span>, verbose<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>model<span style="color:#f92672">.</span>learn(total_timesteps<span style="color:#f92672">=</span><span style="color:#ae81ff">10000</span>)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>继承关系：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>OffPolicyAlgorithm
+</span></span><span style="display:flex;"><span>    └── TD3 (Twin Delayed DDPG)
+</span></span><span style="display:flex;"><span>        └── DDPG (Deep Deterministic Policy Gradient)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="8-总结">8. 总结<a hidden class="anchor" aria-hidden="true" href="#8-总结">#</a></h2>
+<p>DDPG是将深度学习与确定性策略梯度结合的里程碑式算法，为连续动作空间控制提供了有效解决方案。TD3通过三项关键改进显著提高了训练稳定性和性能，是目前处理连续控制问题的默认选择之一。</p>
+<h2 id="参考资料">参考资料<a hidden class="anchor" aria-hidden="true" href="#参考资料">#</a></h2>
+<ol>
+<li><a href="https://www.nature.com/articles/nature14236">Human-level control through deep reinforcement learning (DQN)</a> - Mnih et al., Nature, 2015</li>
+<li><a href="https://arxiv.org/abs/1509.02971">DDPG Paper</a> - Lillicrap et al., 2015</li>
+<li><a href="https://arxiv.org/abs/1802.09477">TD3 Paper</a> - Fujita et al., 2018</li>
+<li><a href="https://spinningup.openai.com/en/latest/algorithms/ddpg.html">OpenAI Spinning Up - DDPG</a></li>
+<li><a href="https://spinningup.openai.com/en/latest/algorithms/td3.html">OpenAI Spinning Up - TD3</a></li>
+<li><a href="https://stable-baselines3.readthedocs.io/">Stable-Baselines3 Documentation</a></li>
+</ol>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Q网络输出的向量维度等同于action数量，向量中的最大值就对应$\max_{a}Q(s,a)$&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref1:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>target_Q网络输出的向量维度等同于action数量，向量中的最大值就对应$\max _{a&rsquo;} Q _{target}(s&rsquo;,a&rsquo;)$。它的作用是提供一个稳定的target,避免在优化Q的时候，因为target不稳定导致的错误估计。&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="http://localhost:1313/posts/2026-01-15-rl_5/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>学习RL(五)</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

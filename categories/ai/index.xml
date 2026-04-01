@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>AI on Yang&#39;s Blog</title>
+    <link>http://localhost:1313/categories/ai/</link>
+    <description>Recent content in AI on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 20 Feb 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/ai/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Nvidia Chat With RTX</title>
+      <link>http://localhost:1313/posts/2024-02-20-nvidia-chatrtx/</link>
+      <pubDate>Tue, 20 Feb 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-02-20-nvidia-chatrtx/</guid>
+      <description>&lt;h2 id=&#34;安装部署&#34;&gt;安装部署&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://us.download.nvidia.com/RTX/NVIDIA_ChatWithRTX_Demo.zip&#34;&gt;软件下载地址&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;安装界面&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;一路点击下一步安装即可。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;安装界面2&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install2.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;安装过程需要耐心等待，我可能等了差不多两个小时，最后安装成功。&lt;/p&gt;
+&lt;p&gt;安装完成之后，在桌面会出现&lt;code&gt;NVIDIA Chat with RTX&lt;/code&gt;快捷方式，就是一个启动脚本。
+如果是默认路径安装的话，需要修改&lt;code&gt;path&lt;/code&gt;：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;C:\Users\Yang\AppData\Local\NVIDIA\ChatWithRTX\RAG\trt-llm-rag-windows-main\config\preferences.json&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;&#34;&gt;
+&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;&#34;&gt;&lt;code&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;1
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;2
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;3
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;4
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;5
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &amp;#34;dataset&amp;#34;: {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &amp;#34;path&amp;#34;: &amp;#34;C://Users//Yang//Desktop//rtx&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &amp;#34;isRelative&amp;#34;: false
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img alt=&#34;加参数&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_share_params.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;运行&#34;&gt;运行&lt;/h2&gt;
+&lt;p&gt;&lt;img alt=&#34;加载模型和参数&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install_running.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;根据路径下文件内容生成embeddings&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install_running_finish.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;这里有一个问题就是：如果我的数据库当中增加或者减少文件，需要重新生成embeddings,这个过程很慢。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;GPU运行情况&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_GPU.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;问问题&#34;&gt;问问题&lt;/h2&gt;
+&lt;p&gt;由于我第一次指定的&lt;code&gt;path&lt;/code&gt;下文件数量很大，导致无法全部加载成功，我减少文件数量，单独加载一个关于bike fitting的书。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;测试&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_test.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;基础比例对判断的影响&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_cabs_accidents1.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;使用贝叶斯定理计算概率1&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_cabs_accidents2.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;使用贝叶斯定理计算概率2&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_cabs_accidents3.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;感受&#34;&gt;感受&lt;/h2&gt;
+&lt;p&gt;同样的出租车问题，我几乎使用相同的单词来询问，给出的答案不统一。稳定性不够好。其他的测试后面再补充。&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

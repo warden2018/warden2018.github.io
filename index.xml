@@ -1,0 +1,1031 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Yang&#39;s Blog</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Mon, 16 Mar 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>学习RL(六)</title>
+      <link>http://localhost:1313/posts/2026-03-16-rl_6/</link>
+      <pubDate>Mon, 16 Mar 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-03-16-rl_6/</guid>
+      <description>&lt;h2 id=&#34;ddpg与td3连续动作空间的深度确定性策略梯度&#34;&gt;DDPG与TD3：连续动作空间的深度确定性策略梯度&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;a href=&#34;https://spinningup.openai.com/en/latest/algorithms/ddpg.html&#34;&gt;Open AI Spinning Up - DDPG&lt;/a&gt; - DDPG（Deep Deterministic Policy Gradient）
+Deep Deterministic Policy Gradient (DDPG) is an algorithm which concurrently learns a Q-function and a policy. It uses off-policy data and the Bellman equation to learn the Q-function, and uses the Q-function to learn the policy.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;本文记录我在学习DDPG（Deep Deterministic Policy Gradient）和TD3（Twin Delayed DDPG）的过程，梳理清楚他们产生的背景，核心思想，特点以及我在实现过程中遇到的问题记录和解决。&lt;/p&gt;
+&lt;h2 id=&#34;1-背景与动机&#34;&gt;1. 背景与动机&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2025/06/27/2025-06-27-RL_4/&#34;&gt;DQN&lt;/a&gt;在离散动作空间表现出色。然而，在许多实际控制任务中（如机器人控制、自动驾驶等），动作空间是连续的。DQN无法计算所有的$Q(s,a)$,代价太大。随着动作空间维度的提升，离散化动作空间带来的成本增加呈指数级别。&lt;/p&gt;
+&lt;p&gt;DDPG正是为解决连续动作空间控制问题而设计的。&lt;/p&gt;
+&lt;h2 id=&#34;2-ddpg核心思想&#34;&gt;2. DDPG核心思想&lt;/h2&gt;
+&lt;p&gt;参考&lt;a href=&#34;https://warden2018.github.io/2026-01-15-rl_5/&#34;&gt;Policy Gradient&lt;/a&gt;和&lt;a href=&#34;https://warden2018.github.io/2026/01/15/2026-01-15-RL_6/&#34;&gt;PPO&lt;/a&gt;，DDPG和TD3想要通过梯度下降的方法对Policy做优化(调节$\theta$)，在训练结束的时候，具有一个最优化的$\theta$，使得$Q(s,a)$$\big(a=\mu_\theta(s)\big )$最大化，还要借鉴DQN当中使用到的&lt;em&gt;&lt;strong&gt;replay buffer&lt;/strong&gt;&lt;/em&gt;: $\mathcal D$和&lt;em&gt;&lt;strong&gt;target network&lt;/strong&gt;&lt;/em&gt;等技术，来提升训练的稳定性和效率。DQN通过Q网络&lt;sup id=&#34;fnref:1&#34;&gt;&lt;a href=&#34;#fn:1&#34; class=&#34;footnote-ref&#34; role=&#34;doc-noteref&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;和target_Q网络&lt;sup id=&#34;fnref:2&#34;&gt;&lt;a href=&#34;#fn:2&#34; class=&#34;footnote-ref&#34; role=&#34;doc-noteref&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;分别近似$Q^\star(s,a)$和$Q^\star(s&amp;rsquo;,a&amp;rsquo;)$，&lt;/p&gt;
+&lt;p&gt;根据Bellman Optimality Equation:&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(五)</title>
+      <link>http://localhost:1313/posts/2026-01-15-rl_5/</link>
+      <pubDate>Thu, 15 Jan 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-01-15-rl_5/</guid>
+      <description>&lt;h2 id=&#34;积累奖励状态价值对策略的梯度与环境动力学无关&#34;&gt;积累奖励(状态价值)对策略的梯度与环境动力学无关&lt;/h2&gt;
+&lt;p&gt;在写两个算法之后，再明确一下基于优化策略梯度的核心思想。在&lt;a href=&#34;https://warden2018.github.io/2026-01-15-rl_5/&#34;&gt;RL_5&lt;/a&gt;中推导了策略梯度是一个期望，具体形式如下：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\nabla _\theta J(\theta) = \mathbb{E} _{a \sim \pi _\theta, s \sim d _{\theta}} \sum _{t=0}^{T} A^{\pi _{\theta}}(s_t,a_t)\nabla _\theta \ln \pi _{\theta}(a_t|s_t)
+\label{eq1}\tag{1}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\begin{aligned}
+\nabla _{\theta} J(\theta) &amp;amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} A^{\pi}(s,a) \nabla _{\theta} \pi(a|s) \\
+&amp;amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} \pi(a|s)A^{\pi}(s,a) \frac {\nabla _{\theta} \pi(a|s)}{\pi(a|s)} \\
+&amp;amp;= \mathbb{E} _{s \sim d _{\theta},a \sim \pi} A^\pi(s,a) \nabla _{\theta} \ln \pi(a|s)
+\end{aligned}
+\label{eq2}\tag{2}
+\end{equation}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>手眼标定</title>
+      <link>http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/</link>
+      <pubDate>Tue, 02 Dec 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/</guid>
+      <description>&lt;p&gt;本文参考了&lt;a href=&#34;https://www.torsteinmyhre.name/snippets/robcam_calibration.html&#34;&gt;OPENCV&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。&lt;/p&gt;
+&lt;p&gt;&lt;img loading=&#34;lazy&#34; src=&#34;https:/https://images-1302340771.cos.ap-beijing.myqcloud.com/images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;利用李代数和最小二乘解决$AX=XB$的问题。&lt;/p&gt;
+&lt;h2 id=&#34;平移旋转分开求解&#34;&gt;平移旋转分开求解&lt;/h2&gt;
+&lt;h2 id=&#34;从齐次等式提取旋转部分&#34;&gt;从齐次等式提取旋转部分&lt;/h2&gt;
+&lt;p&gt;$$
+\begin{bmatrix}
+R_A &amp;amp; b_A \
+0 &amp;amp; 1
+\end{bmatrix}
+\begin{bmatrix}
+R_X &amp;amp; b_X \
+0 &amp;amp; 1
+\end{bmatrix}=
+\begin{bmatrix}
+R_X &amp;amp; b_X \
+0 &amp;amp; 1
+\end{bmatrix}\begin{bmatrix}
+R_B &amp;amp; b_B \
+0 &amp;amp; 1
+\end{bmatrix}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+R_AR_X=R_XR_B
+$$&lt;/p&gt;
+&lt;h2 id=&#34;李代数和李群之间的相互映射&#34;&gt;李代数和李群之间的相互映射&lt;/h2&gt;
+&lt;p&gt;在SO(3)上，旋转矩阵$R$的李代数$\phi$ $\boldsymbol u\in so(3)$是一个三维向量($\boldsymbol u$是一个单位向量，$\phi\in \mathbb R$)。$\boldsymbol u^{\wedge}$是一个反对称矩阵。&lt;/p&gt;
+&lt;h3 id=&#34;so3李代数到so3的指数映射罗德里格斯公式&#34;&gt;so(3)李代数到SO(3)的指数映射&amp;ndash;罗德里格斯公式&lt;/h3&gt;
+&lt;p&gt;$$
+R=e^{\phi \boldsymbol u^{\wedge}}=\cos\phi I + (1-\cos \phi) \boldsymbol u\boldsymbol u^T + \sin \phi \boldsymbol u^{\wedge}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(三)</title>
+      <link>http://localhost:1313/posts/2025-06-27-rl_3/</link>
+      <pubDate>Fri, 27 Jun 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-06-27-rl_3/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Learning&lt;/strong&gt;&lt;/em&gt;就是通过迭代的方法找到更接近真实值的手段。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;蒙特卡洛方法&#34;&gt;蒙特卡洛方法&lt;/h2&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;当研究的问题动态模型未知的时候，怎么做策略估计？怎么做策略的改进？&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;在实际应用中，经常遇到模型未知的情况，无法像上一章节讲的，通过&lt;em&gt;&lt;strong&gt;Bellman&lt;/strong&gt;&lt;/em&gt;公式计算状态价值是根据模型（状态传递概率$p(s&amp;rsquo;,r|s,a)$）得到的，但是实际应用中经常遇到没有这样的概率可以依赖。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;思路就是既然MDP利用环境状态传递概率(&lt;em&gt;&lt;strong&gt;State Transition Probability&lt;/strong&gt;&lt;/em&gt;)$p(s&amp;rsquo;,r|s,a)$来加权计算期望，在不知道这个概率的情况下，能否利用多次采集某状态出现的时候，环境给出的奖励&lt;em&gt;&lt;strong&gt;Reward&lt;/strong&gt;&lt;/em&gt;来平均计算，作为状态价值。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;解法就是通过实验，多次执行&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;，在每次的循环中，记录特定状态出现的次数以及循环结束之后所获得的奖励，最后依据大数定律，对积累起来的奖励求平均值，就当作该状态的价值。如果我们事先知道所有的可能状态（在该特定的policy下面，应该可以确定出来），那么就维护一个数组，存储每一种状态的上面的信息，最后所有状态的价值都计算出来就意味着策略评估完成了。
+但是问题来了：如果一个&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;持续很长时间，或者就无法结束，那么，蒙特卡洛方法这种依赖&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;结束才可以获得状态价值的方法就无法应用，需要找到替代的方法来近似。
+TD-learning就解决了这个问题。基于TD-Learning就衍生出一系列的方法解决这类问题。&lt;/p&gt;
+&lt;h2 id=&#34;mc-policy-evaluation-and-control&#34;&gt;MC Policy Evaluation and Control&lt;/h2&gt;
+&lt;p&gt;$$G_t=R_{t+1} + \gamma R_{t+2}+ \gamma^2 R_{t+3} \cdots + \gamma^{T-1} R_{T}$$
+$$v_\pi(s)=\mathbb{E}_\pi(G_t|S_t=s)$$&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;需要循环多次&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;, 每次&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;开始之后，每一次遇到感兴趣的$s$，记录$N(s)=N(s)+1$，并且把&lt;em&gt;&lt;strong&gt;Return&lt;/strong&gt;&lt;/em&gt;加进来：$G(\boldsymbol s,a)=G(\boldsymbol s,a)+r$&lt;/li&gt;
+&lt;li&gt;完成当前的&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;后，计算$Q(\boldsymbol s,a)=G(\boldsymbol s,a)/N(\boldsymbol s,a)$ -&amp;gt;类似于累加Reward的过程&lt;/li&gt;
+&lt;li&gt;然后遍历$a$，更新策略：$\pi(s)=argmax_aQ(\boldsymbol s, a)$&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Monte Carlo ES&lt;/strong&gt;&lt;/em&gt;，是指每一个&lt;em&gt;&lt;strong&gt;episode&lt;/strong&gt;&lt;/em&gt;起始的状态选择是随机的，不能固定，避免有些状态永远无法被访问到。下图是书中的算法流程。&lt;/p&gt;
+&lt;p&gt;这部分也叫做&lt;em&gt;&lt;strong&gt;MC Policy Improvement&lt;/strong&gt;&lt;/em&gt;。
+从给定的$\pi_0$开始，$E$代表策略估计（&lt;em&gt;&lt;strong&gt;Policy Estimation&lt;/strong&gt;&lt;/em&gt;），得到动作价值函数$Q_{\pi_0}$，采用贪心算法（&lt;em&gt;&lt;strong&gt;greedy&lt;/strong&gt;&lt;/em&gt;）找到使得$Q_\pi(\boldsymbol s, a)$最大的&lt;em&gt;&lt;strong&gt;action&lt;/strong&gt;&lt;/em&gt;: $\pi_1(\boldsymbol s) \leftarrow \arg max_{a}Q_{\pi_0}(\boldsymbol s, a)$&lt;/p&gt;
+&lt;p&gt;$$
+\pi_0 \xrightarrow{\text{E}}Q_{\pi_0}\xrightarrow{\text{I}}\pi_1\xrightarrow{\text{I}}\pi_2\cdots
+\xrightarrow{\text{I}}\pi_*\xrightarrow{\text{E}}Q_{\pi_ *}
+$$&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2025-06-27-rl_3/&#34;&gt;参看4.6 广义策略迭代(Generalized Policy Iteration)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;GDI示意图&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_GDI.png&#34;&gt;
+&lt;img alt=&#34;Monte Carlo ES&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_Monte_Carlo_ES.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;on-policy-and-off-policy&#34;&gt;On-Policy and Off-Policy&lt;/h2&gt;
+&lt;p&gt;在学习Q值的过程中，我们会遇到两种情况：&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(四)</title>
+      <link>http://localhost:1313/posts/2025-06-09-rl_4/</link>
+      <pubDate>Mon, 09 Jun 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-06-09-rl_4/</guid>
+      <description>&lt;h2 id=&#34;更新记录&#34;&gt;更新记录&lt;/h2&gt;
+&lt;p&gt;2025-12-15：从策略下的系统演进路径$\tau$推导PG为什么不需要对环境迁移概率求导$p(\boldsymbol s_{t},r|\boldsymbol s_{t-1},\boldsymbol a_{t-1})$从而&lt;a href=&#34;#4-baseline%E7%9A%84%E5%BC%95%E5%85%A5&#34;&gt;引入baseline&lt;/a&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;1-为什么要有policy-gradient&#34;&gt;1. 为什么要有&lt;em&gt;&lt;strong&gt;Policy Gradient&lt;/strong&gt;&lt;/em&gt;&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2025-06-27-rl_3/&#34;&gt;学习RL(三)&lt;/a&gt;当中提到，相比策略评估和策略迭代分开进行的方法，&lt;em&gt;&lt;strong&gt;GPI&lt;/strong&gt;&lt;/em&gt;已经有了进步，能够在策略评估的阶段就先把&lt;em&gt;&lt;strong&gt;actions&lt;/strong&gt;&lt;/em&gt;: $\mathcal{A}$(离散的)遍历一遍，找到使得&lt;strong&gt;action-value&lt;/strong&gt;$:Q_\pi(s,a)$ （为了把概念表达清晰，这里我想纠正我之前的blog当中对&lt;strong&gt;action-value&lt;/strong&gt;采用的符号：$q(s,a)$）最大的那个$a$ : $\arg\max_{a \in \mathcal{A}} Q_\pi(s, a)$。之前在写blog的时候，脑子里面一直就藏着一个大问号：如果是控制电机的转速这种连续的场景，该怎么遍历 $\mathcal{A}$呢？当时我的想法是将 $\mathcal{A}$分段考虑，但是直到我知道有&lt;em&gt;&lt;strong&gt;Policy Gradient&lt;/strong&gt;&lt;/em&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;2-什么是函数的gradient&#34;&gt;2. 什么是函数的&lt;em&gt;&lt;strong&gt;Gradient&lt;/strong&gt;&lt;/em&gt;&lt;/h2&gt;
+&lt;p&gt;梯度一般是在函数自变量空间当中的一个向量（假设函数的自变量是一个向量），坐标系统是在一个垂直正交的系统中，$\nabla$就是一个在坐标系统中有方向有大小的向量，方向代表了自变量沿着该方向移动微小距离$dr$，函数变化最大。$df=||f(\boldsymbol x + dr\cdot \nabla f(\boldsymbol x))-f(\boldsymbol x)|| \geq || f(\boldsymbol x + dr\cdot \boldsymbol \alpha)-f(\boldsymbol x)|| \boldsymbol (\alpha \text{ is any vector in } \boldsymbol X$)。
+&lt;img alt=&#34;梯度示意图&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/Gradient.png&#34;&gt;
+&lt;em&gt;图1: 梯度方向示意。$\nabla f(\boldsymbol x)$ 指向函数值变化最快的方向。&lt;/em&gt;&lt;/p&gt;
+&lt;h2 id=&#34;3-从价值函数推导&#34;&gt;3. 从价值函数推导&lt;/h2&gt;
+&lt;p&gt;$$
+J(\theta)
+= \sum_{s \in \mathcal{S}} d_\pi(s) V_\pi(s)
+= \sum_{s \in \mathcal{S}} d_\pi(s) \sum_{a \in \mathcal{A}} \pi_\theta(a \vert s) Q_\pi(s, a)
+\tag{1}
+$$
+对比之前的依据&lt;strong&gt;action-value&lt;/strong&gt;$:Q_\pi(s,a)$寻找$s$上的$a_{best}$，本方法依旧会使用$:Q_\pi(s,a)$，但是并不在每次的迭代中（&lt;em&gt;&lt;strong&gt;GDI&lt;/strong&gt;&lt;/em&gt;）去直接做action的选择，而是参与到对（1）的梯度计算当中。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>2024总结</title>
+      <link>http://localhost:1313/posts/2025-01-08-2024_summary/</link>
+      <pubDate>Wed, 08 Jan 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-01-08-2024_summary/</guid>
+      <description>&lt;h2 id=&#34;工作&#34;&gt;工作&lt;/h2&gt;
+&lt;p&gt;因为产品推广的需要出差到&lt;a href=&#34;https://warden2018.github.io/2024/02/05/2024-02-04-DuBai/&#34;&gt;迪拜&lt;/a&gt;和新加坡参加口腔展。&lt;/p&gt;
+&lt;p&gt;因为需要横向扩展产品线，集成不同的硬件系统，对软件的结构做了一系列的改造，就是重构。&lt;/p&gt;
+&lt;p&gt;针对客户反馈的问题和测试人员的反馈，针对主要业务的模块进行了代码重构，使得架构的可扩展性，可维护性提升，避免不同功能的相互耦合导致的问题。
+&lt;a href=&#34;https://warden2018.github.io/2024/07/23/2024-07-23-DesignPattern-StateMode/&#34;&gt;重构的笔记&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;个人学习&#34;&gt;个人学习&lt;/h2&gt;
+&lt;p&gt;2024年的下半年开始， 成为&lt;a href=&#34;https://weread.qq.com/&#34;&gt;微信读书&lt;/a&gt;的重度用户。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;2024微信读书已完成&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/weread_finished_books.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;下面是一部分书的笔记:&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2024/09/06/2024-09-06-Book-The-Gardener-and-the-carpenter/&#34;&gt;《园丁与木匠》&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2024/07/25/2024-07-25-Book-China-%20Economy/&#34;&gt;《置身事内：中国政府与经济发展》&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://warden2018.github.io/2024/07/15/2024-07-15-Zen/&#34;&gt;《禅与摩托车维修艺术》&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;2024年读书给我最大的触动，或者说收获是：&lt;/p&gt;
+&lt;p&gt;遇到一件事情，不管是一个问题还是有人跟你描述了一个观点或者事实，首先要做的不是去着急想解决方法或者产生一个判断，而是要把自己沉浸到问题或者对方的视角当中，用贝叶斯的思维去辩证思考，首先就是把所谓的基础概率纳入进来，或者说列举出来所有的可能性，然后根据你所看到听到的来更新这些可能性，最后再得到自己的判断。&lt;/p&gt;
+&lt;p&gt;2024年设计加工了一套可倒立的立方体样机，软件还没定版。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;cubli-design&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/cubli_design.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;家庭&#34;&gt;家庭&lt;/h2&gt;
+&lt;p&gt;主要精力在培养孩子。
+与其说是单方面培养，不如说是和孩子一起进步，从大脑的开发到体魄的强健我们都是共同参与。
+2024年主要精力放在了认读英文和数学上面，英文听力一直用客厅的音响磨耳朵：journey to the west, dragon master 和牛津树。&lt;/p&gt;
+&lt;details&gt;
+  &lt;summary&gt;孩子的年度进展&lt;/summary&gt;
+&lt;p&gt;语文进展：年初识字量约600，年末识字量约1500。1-5月用洪恩字卡过完1300字，自读小巴掌童话数本。6月后开英文自读，中文基本停滞。&lt;/p&gt;
+&lt;p&gt;英语进展：年初听力在牛津树8-9，文盲。年末自读完成RAZ I，听力约在初章。今年亲读了牛8，9，journey to the west，科二四五十本，dragon master。六月开始按高频词，自读牛1-5， 自读RAZ GHI的顺序练习自读。听力：上半年牛7-9，科二，journey to the west，下半年dragon master。数学：年初10以内分合，年末100以内加减（退位减法未搞定）&lt;/p&gt;
+&lt;p&gt;体能进展：年初开始独立完成樱桃沟，夏天完成百花山的两次尝试，从门头沟方向的入口开始算起，到高山草甸结束。第一次完成整体的一半，第二次完成全程，小震惊了我们。粗略估计2024年全部的爬升有1000米，2025年目标是2000米的爬升。&lt;/p&gt;
+&lt;/details&gt;
+&lt;p&gt;家庭周末的菜主要是在家自己做，2024年几乎没有开发新的菜谱，继续吃老本。
+&lt;img alt=&#34;2024年的主要菜谱&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/2024_summary_recipes.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;健康&#34;&gt;健康&lt;/h2&gt;
+&lt;p&gt;因为有了孩子的缘故，之前的羽毛球和篮球活动已经暂停了。能够抽时间做的事情是骑自行车，主要是上下班的骑行。
+我给自己配了一块佳明的运动手表，然后数据统计用&lt;a href=&#34;https://www.strava.com/&#34;&gt;strava&lt;/a&gt;。2023年开始的骑行，到了2024年算是第二个骑行年，2024年总共的里程是2600公里，主要是通勤，剩下的是周末门头沟的谭王路和妙峰山还有戒台寺。
+2000多公里的距离应该只是入门的水平，所以我作为骑行菜鸟，还需要继续努力，继续健康快乐骑行更远的距离。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;2024骑行&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/2024_summary_cycle.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;2024不足与2025展望&#34;&gt;2024不足与2025展望&lt;/h2&gt;
+&lt;h2 id=&#34;不足&#34;&gt;不足&lt;/h2&gt;
+&lt;p&gt;孩子培养，看了书知道了理论，没有投入实践，对孩子的陪伴是需要“绳锯木断，水滴石穿“的功夫，日拱一卒，不断地提供给养。&lt;/p&gt;
+&lt;p&gt;工作方面，有时对繁琐的需求变更产生厌恶情绪，没有心怀敬畏。&lt;/p&gt;
+&lt;p&gt;生活方面，陪伴家庭成员的时间不够，在一起的时候，专注度也有待提高。&lt;/p&gt;
+&lt;p&gt;锻炼身体方面，没有正确评估能力和目标的匹配度，经常蛮干。&lt;/p&gt;
+&lt;h2 id=&#34;展望&#34;&gt;展望&lt;/h2&gt;
+&lt;p&gt;继续保持阅读的习惯。不管当天有多么忙，必须抽时间看看书。这并不是为了能保持住当天的进度，而是在有闲暇时间的时候，能花更多的时间去投入阅读。就是让自己每天都别离开这个习惯。&lt;/p&gt;
+&lt;p&gt;锻炼身体方面，要劳逸结合，学一些有效的技巧，还有就是明确每次出车的目标，纯娱乐还是提升有氧能力。&lt;/p&gt;
+&lt;p&gt;组织一次家庭出游，在孩子上小学之前，时间相对好安排。&lt;/p&gt;
+&lt;p&gt;倒立立方体，软件部分做完，能够保持平衡，立起来。也希望自己在2025能够保持专注，持续学习，有优质的输出。&lt;/p&gt;
+&lt;p&gt;2025/01/08 看瑞尔集团的创始人邹其芳先生的第一次直播，让我触动的是慎交友。结交的朋友会潜移默化地影响自己，尽量结交贵人，对自己有积极影响的人。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(二)</title>
+      <link>http://localhost:1313/posts/2024-07-26-rl_2/</link>
+      <pubDate>Fri, 18 Oct 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-26-rl_2/</guid>
+      <description>&lt;h2 id=&#34;动态规划&#34;&gt;动态规划&lt;/h2&gt;
+&lt;p&gt;在环境动力学模型$p(s&amp;rsquo;, r|s, a)$已知的情况下，学习状态价值或者是动作价值。&lt;/p&gt;
+&lt;h3 id=&#34;策略评估policy-evaluation&#34;&gt;策略评估&amp;ndash;Policy Evaluation&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;讨论的是如何在已知策略的情况下计算状态价值函数，从而得到采用该策略的价值有多大。&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;在DP当中&lt;em&gt;&lt;strong&gt;policy evaluation&lt;/strong&gt;&lt;/em&gt;就是计算状态价值函数，也就做&lt;em&gt;&lt;strong&gt;prediction problem&lt;/strong&gt;&lt;/em&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;策略评估的迭代计算&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_Ch4_1.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;这里讨论的是如何计算状态价值函数，该函数是从初始的状态(不准)迭代计算的，迭代的终止条件是状态价值的更新幅度小于一个预设的阈值$\theta$，也就是说当状态价值函数的更新幅度小于$\theta$的时候，就认为状态价值函数已经收敛了。&lt;/p&gt;
+&lt;p&gt;还有一个具体的细节：提到了两种状态价值迭代的方式，一种是维护上一次所有状态价值的数组和当前状态价值的数组，计算当前的状态价值的时候只参考上一个状态的数组，还有一种是直接将上一次的数组某个状态价值更新了，其他状态价值的计算直接用更新了的。后面的讨论默认都是基于第二种方式。&lt;/p&gt;
+&lt;p&gt;明显地，想要实现上面的计算过程有一个概率需要知道，那就是状态转移概率$p(s&amp;rsquo;, r|s, a)$，也就是在状态$s$下采取行动$a$之后，转移到状态$s&amp;rsquo;$并且得到奖励$r$的概率，这也是叫做环境模型已知。这个概率在DP当中是已知的，在后续的MC和TD当中是未知的。&lt;/p&gt;
+&lt;h3 id=&#34;策略改进policy-improvement&#34;&gt;策略改进&amp;ndash;Policy Improvement&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;讨论的是在已有一个策略，且该策略所对应的状态价值已经确定的情况下，如何调整$a=\pi(s)$为$a&amp;rsquo;=\pi&amp;rsquo;(s)$，使得改进了的策略在将来与环境交互中获得更多的奖励。&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;想法的来源是在状态为&lt;code&gt;s&lt;/code&gt;的情况下，我们知道，继续沿用策略$\pi$, 所得到的后续收益就是$V(s)=\mathbb{E}(G|S=s)$。那么，一个问题来了：有没有可能，在状态为$s$的情况下，采取一个不同于$\pi(s)$的行动$a&amp;rsquo;$, 从而得到一个更大的收益$\mathbb{E}(G|S=s, A=a&amp;rsquo;)$，也就是说，是否存在一个行动$a&amp;rsquo;$使得$Q(s, a&amp;rsquo;) &amp;gt; V(s)$。如果存在这样的行动，那么我们就可以把当前状态下的策略改进为$\pi&amp;rsquo;(s)=a&amp;rsquo;$, 也就是说，在状态为$s$的时候，不再按照之前的策略$\pi(s)$来选择行动，而是按照新的策略$\pi&amp;rsquo;(s)=a&amp;rsquo;$来选择行动：因为采取$a&amp;rsquo;$获得了更多的收益。这种单个状态下的动作改变，其实是更普遍的情况下的一个特例，普遍地，在已知策略$\pi$和状态价值$V _{\pi}(s)$的情况下，我们可以通过计算$Q _{\pi}(s,a)=\mathbb {E}(r _{t+1}+ \gamma V _{\pi}(s&amp;rsquo;)|S=s,A=a)=\sum _{r _{t+1},s&amp;rsquo;}p(s&amp;rsquo;,r _{t+1}|s,a)\big (  r _{t+1}+ \gamma V _{\pi}(s&amp;rsquo;)\big )$来找到一个行动$a&amp;rsquo;$使得$Q _{\pi}(s,a&amp;rsquo;) &amp;gt; V _{\pi}(s)$，从而把当前状态下的策略改进为$\pi&amp;rsquo;(s)=a&amp;rsquo;$。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;贪心策略&lt;/strong&gt;&lt;/em&gt;：对于任意一个状态$s$，遍历所有可能采取的行动，看看哪种行动的状态-行动价值最高，那么，当后面遇到状态为$s$的时候，就直接采取行动$\pi&amp;rsquo;(s)$。
+$$
+\pi&amp;rsquo;(s) = \arg \max _a Q _{\pi}(s,a) = \arg \max _a \sum _{r _{t+1},s&amp;rsquo;}p(s&amp;rsquo;,r|s,a)\big (  r _{t+1}+ \gamma V _{\pi}(s&amp;rsquo;)\big )
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>《园丁与木匠》</title>
+      <link>http://localhost:1313/posts/2024-09-06-book-the-gardener-and-the-carpenter/</link>
+      <pubDate>Fri, 06 Sep 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-09-06-book-the-gardener-and-the-carpenter/</guid>
+      <description>&lt;p&gt;&lt;img alt=&#34;园丁与木匠&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/book_gardenerAndCarpenter.png&#34;&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;关于作者：艾莉森·高普尼克（Alison Gopnik）是美国加州大学伯克利分校儿童发展心理学教授，也是该领域全世界最顶尖的学者之一。她不仅是一位实验心理学家，也是一位哲学家，一生致力于以跨学科的视角研究儿童的认知与成长。她养育了三个儿子，现有三个不到5岁的孙辈。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;a href=&#34;https://gitmind.com/app/docs/mr82i8uu&#34;&gt;本书的框架&lt;/a&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这本书我觉得最大的特点是将理论研究和实践结合起来，给父母一个很清晰的框架，在这个框架下，指导父母如何去爱孩子，如何去陪伴和引导孩子。在这个过程中，其实本质是提升父母的认知，为孩子的成长提供一个好的“花园”，而不是按照自己的想法去把孩子雕刻成一个心中的模样。作者在术中并没有特别细节地描述育儿方面需要采取的措施，而是结合儿童心理学，哲学，以及认知心理学的理论和最新的研究成果，将时间线拉长，到达原始人类，智人时候的生产生活，结合婴幼儿的大脑特点，分析了婴幼儿的行为产生的生物学原因以及从进化角度得出的原始动机。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;脉络&#34;&gt;脉络&lt;/h2&gt;
+&lt;p&gt;本书首先强调了尽管成年人&amp;ndash;包括了父母，祖父母等等参与照顾幼儿的所有人，可能会觉得照看幼儿是一件非常令人痛苦的事情，但是在每一个细节当中，照看者会感受到孩子的爱，以及孩子也会感受到照看者的爱和关怀，这种亲密关系是非常伟大和无私的，也是崇高的，在道德上深刻，在情感上强烈。所以对于照看孩子，作为成年人要把它当作一种修行，主动地去承担各种各样的非常琐碎的事情，因为这件事情本身就非常伟大。所以，作者最开始其实是要大家引起重视，不能掉以轻心。
+然后，作者给出了本书的中心思想：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;确切地说，爱孩子的意义就是为那些无助的幼儿提供一个丰富、稳定、安全的环境，这个环境充满变化、创新和新奇的元素，可供他们无限发展。无论是从生物学和进化的角度来看，还是从个人和政治的角度来看，都是如此。爱孩子并不是给他们一个目的地，而是为他们的旅程提供给养。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;而后，更加具体地讲，作者提出：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;好父母不一定会把孩子变成聪明、快乐或成功的成年人，但可以打造出强健、具有高适应性和韧性的新一代人，以更好地应对未来将要面临的不可避免、不可预测的变化。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;然后，作者借用孩子大脑的生物学研究成果：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;发育中的大脑就可以说明这一点。稚嫩的大脑比成熟的大脑更加可塑，它们会生成更多的神经连接，也更加灵活。事实上，一岁孩子大脑中的神经元连接数目是我们成人大脑的两倍。不止于此，年轻的大脑还拥有更多连接的可能。这些连接很弱，已有的连接可以根据新的经历更迅速、更容易地发生改变。因此，年轻的大脑可以毫不费力地随着环境的变化而改变。在成长过程中，21常用的神经连接会变得灵活高效，并能横跨更远的距离。不用的神经连接会被“修剪”掉，从而消失。成熟大脑的灵活性低，神经连接从曲折狭窄的小径变成了笔直的长途信息高速公路。成人的大脑仍能改变，但大多发生在压力之下，并且要付出努力和注意力。总之，年轻的大脑天生就要探索，成熟的大脑则负责运用。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;来说明，孩子心智的健康发展，一定不是按照父母的意愿，持续地接受某些特定的信息来促进大脑对应的神经元产生高效连接，而是需要在漫长的幼儿阶段，持续不断地让孩子接触大范围的内容，从体育到植物，从动物到乐器，从新闻到工程学等等。让孩子接受不同的概念，领域及其之间的关联就是优秀的内容输入，用于神经元的连接提供丰富的素材。我的一个好友推荐的方法就是带着孩子跟不同领域的专家聊天，让孩子接受从未了解的概念甚至它们之间的逻辑关系，让孩子建立丰富的概念，当将来再次遇到这些概念的时候，就不会因为是第一次而感到恐惧和陌生，反而会激发他们的探索欲望，让孩子发自内心地主动寻求概念背后的基本逻辑。
+接着作者作为一位母亲和祖母，从自己的亲身体会分析：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;大约20年前，我写下了第一本书。在某一章的开头，我描绘了怀孕生子给我带来的如潮水般势不可当的经历：9个月的生理变化，与另一个生命共用身体的奇妙感受，以及生产时席卷一切如跑马拉松般的努力。我能感受到婴儿在产道中移动，这感受怪异又真实；我能感到大脑中涌动的狂喜，以及它释放出的种种化学物质。最终，我怀抱着温暖的小生命，他紧贴着我的身体。似乎，这种种唯有母亲才能体验的生理、情感与化学变化，塑造了舐犊之情。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;毋庸置疑，母亲有照顾幼儿的原始冲动。有生理学和心理学的原因，显而易见。爱人双方，尤其是父亲，因为深爱着对方，所以也深爱着双方共同的孩子，祖父母因为爱着自己的孩子，而且忙碌的现代生活父母不能时时刻刻在幼儿身旁，祖父母将自己的爱延续到了孙辈。作者提到，所有这些人的爱，是对持续照看幼儿的基本保障，这些爱很难随着时间和环境而产生巨大变化，是发自内心深处并且是源源不断的。&lt;/p&gt;
+&lt;p&gt;接着，作者从边看边学，边听边学，边玩边学和边练边学四个维度分析了如何结合孩子的大脑特点去为他们提供成长的养料和提供稳定环境。在这里我列举一些我认为比较重要的内容。
+孩子作为一张白纸，在出生之后是缺乏因果关系的逻辑分析能力的，那么，他们是如何学习到这一技能的呢？&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;有两种方法可以学习因果知识：一种是通过反复试错，另一种是观察其他人或事件。反复试错是所有动物学习的最基本方式，即使是最简单的生物，例如苍蝇、鼻涕虫和蜗牛，也会重复一些可以带来奖励的行为。试错的方式可以测试你的行为是如何导致事件发生的，并学习如何让新的事件发生。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;update2025-6-05&#34;&gt;update::2025-6-05&lt;/h2&gt;
+&lt;p&gt;在写[[AI - RL Policy Gradient]]的时候，找到了这篇文章[intuitive understanding of Policy Gradient](&lt;a href=&#34;https://jonathan-hui.medium.com/rl-policy-gradients-explained-9b13b688b146&#34;&gt;RL — Policy Gradient Explained. Policy Gradient Methods (PG) are… | by Jonathan Hui | Medium&lt;/a&gt;)&lt;/p&gt;
+&lt;p&gt;&lt;img loading=&#34;lazy&#34; src=&#34;https://miro.medium.com/v2/resize:fit:720/format:webp/1*94EI9DpoXnWa6oLHvh14pw.jpeg&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;孩子看到了周围环境的状态$S_t$。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;孩子采取了行动$u_t$，根据他大脑中的&lt;em&gt;&lt;strong&gt;instinct&lt;/strong&gt;&lt;/em&gt;，我觉得是知觉，具体来说就是&lt;em&gt;&lt;strong&gt;Agent&lt;/strong&gt;&lt;/em&gt;当中的$\pi(u|s)$，采取的$u$应该是能够最大化一个价值函数$J$，这个函数和当前的状态$s$有紧密的关系。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;行动之后，环境变化，得到新的状态$S_{t+1}$以及得到奖励$r_{t+1}$&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;进一步地，采取下一个行动，该行动的选择是依据新的环境状态&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;因为孩子有漫长的学习期，并不会有太多的生存压力，所以要鼓励孩子尽量用“探索式”的学习方法来学习：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;孩子和成人之间的这种差异反映了我之前谈到的关于“探索式”与“运用式”学习方法的对比。在“运用式”学习中，我们尝试快速找到最有可能当下就能解决问题的方案；而在“探索式”学习中，即使不能马上找到答案，我们也会尝试很多的可能性，甚至包括不太可能奏效的那些。如果我们想要在复杂的世界中茁壮成长，这两种学习方式都需要。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;孩子不仅能够有选择性地吸收表面的知识，也能够看到隐藏在知识之下的可信度，或者说是一种程度，这种程度表示的是有多少可信任的成分。所以就像很多工程上采用的原理，例如卡尔曼滤波器，在获取到测量状态之后，需要根据可信度，加权到预测当中形成统计学意义上的最优值。当然，孩子的学习过程要比滤波复杂得多，是更高维度，更多层次的一种取舍行为。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;随着孩子年龄的增长，他们开始对与他人交谈时的更多细微之处变得敏感。孩子可以感知到别人在说话时有多自信。如果两个人提出相互争论的观点，那么即使是3岁的孩子也会选择相信那位说话时更有自信的人。如果4岁的孩子听到一个有知识的人提出什么主张，相比那些无知的人，他们更有可能相信这位有知识的人。而5岁的孩子则会考虑到更具体的知识分类，他们更可能相信医生对医学的评价，或者工程师对机器的评价。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;孩子有一种本能，就是努力归纳出来一种适用于可以解释很多现象的共同逻辑链条，也就是普遍规律。我的理解是在这个过程中，驱动孩子做这一件事情的原始动力是为了在将来的生活当中，在遇到问题的时候，能够快速产生解决问题的方法，而不是在遇到问题的时候才开始做多种尝试&amp;ndash;可以说是惰性使然。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;孩子不仅需要更多关于这个世界的信息，他们还需要理解因果关系，才可以从一个更深入、更广泛的角度理解这个世界，也就是说，这些信息可以促进他们未来学到更多的知识。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;作者提到本质主义帮助孩子抽象他们所见到听到感受到的内容，可以让孩子更加深刻地理解他身边的世界:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;孩子可以从语言的细微特征中学习。被心理学家称为本质主义的发展就是一个非常好的例子。苏珊·格尔曼3730年来一直在研究孩子的本质主义，并取得了令人瞩目的成就。所有有心智的生物把这个世界的事物区分成了不同的类别。而“本质主义”这个术语是心理学家用来描述我们倾向于认为这些类别是深刻的、先天的、永久的，这些都来自这个世界，而不是来自我们的心智。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;孩子大脑中永远有一个猜测：从统计学的角度来看，猜测是一个或者多个随机变量的概率分布，当我们有了新的证据，就会利用贝叶斯理论去计算在当前证据下，猜测的新的分布，这是一个条件概率分布，也叫做后验分布。也是我们心中认为最合理的结果。作者做的科学研究应该会涉及到这方面的数学基础。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;现在假设我们做一个新的实验或者进行一项新的观察。新的证据可能会让我们重新考量那个最好的猜测。也许有一个不同的假设能更好地解释新的证据。如果另一个假设成立，会发生什么呢？如果新的假设能更好地解释所有的证据，包括旧的和新的，那我们可能会认为它更有可能是真的。它将取代我们以前暂定为“真理”的想法。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;作者提到了探索式学习和掌握式学习：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这两种学习方式似乎涉及不同的底层机制，甚至不同的大脑区域。孩子发展掌握式学习的时间要晚于探索式学习。婴儿和最聪明的成年人一样擅长探索式学习，甚至婴儿可以做得更好。但随着年龄的增长，人类似乎越来越擅长掌握式学习。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;成年人和幼儿的学习过程，在生物学上面是有差异的：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;我需要花很大的努力去适应让我无所适从的互联网。这是因为对成年人来说，学习一项新技术需要认真、细心、有意识的学习过程。而这种专注是成年人非常珍贵的资源。甚至在神经元的层面上也是如此。当我们集中注意力的时候，大脑中负责设定目标计划的前额叶皮层会释放胆碱类的神经递质。但这些能促使我们学习的化学物质只能传递到大脑的某些特定部位。前额叶皮层也会释放抑制性的化学物质，从而阻止大脑其他部位发生改变。因此成年人在学习一项新技术的时候，大脑只能进行一点点细微的改变。孩子大脑14的注意力和学习能力的运作方式则完全不同于成人。年轻的动物和人类有着分布更广的胆碱类神经递质，这让他们不需要专注和计划就能学习了。一切新鲜的事物，无论是多么令人惊讶的，还是看似无用的或杂乱无章的，年轻的大脑都能让孩子轻松地掌握这些庞杂的信息。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;收获&#34;&gt;收获&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;当父母有意识地对孩子进行说教，可能不会对孩子产生多少影响，孩子此时并不能很好地吸收父母输出的观点或者是知识内容，相反地，孩子反而擅长通过父母微妙的肢体语言，说话的声音语调的变化，敏感地察觉出蕴含在里面的有效信息，从而吸收到孩子的大脑。&lt;/li&gt;
+&lt;li&gt;作者在接受采访的时候提到一个点：西方的哲学传统当中，很少有孩子的身影，因为很多的西方哲学家都是单身的男士，他们专心于和自然、社会进行沟通，很少有机会接触孩子，更不用说从孩子身上获取到什么哲学方面的灵感了。&lt;/li&gt;
+&lt;li&gt;“以人为鉴，可以明得失；以史为鉴，可以知兴替”，还需要再加一句，以儿为鉴，可以明己。当我们观察幼儿的时候，就是在提升对自我的认知：某种程度上，他们就是曾经的我们，当我们试图让自己“傻”得更像一张白纸的时候，可能我们会发现，其实那个我就是孩子。&lt;/li&gt;
+&lt;li&gt;当父母专注于如何提供幼儿一个安全丰富的环境的时候，往往父母就会从行动上提升自己本身的能力和认知水平，去争取更高的社会地位以及收入来使自己有能力提供如上的环境。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;关于作者的学术研究&#34;&gt;关于作者的学术研究&lt;/h2&gt;
+&lt;p&gt;结合之前的卡尔曼滤波的文章，&lt;a href=&#34;http://localhost:1313/2023/12/01/2023-12-01-Kalman-Filter-Theory-1/&#34;&gt;卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波&lt;/a&gt;
+在儿童学习过程中，贝叶斯学习被作者重点提及。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>学习RL(一)</title>
+      <link>http://localhost:1313/posts/2024-07-26-rl_1/</link>
+      <pubDate>Fri, 26 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-26-rl_1/</guid>
+      <description>&lt;h2 id=&#34;基础概念&#34;&gt;基础概念&lt;/h2&gt;
+&lt;h3 id=&#34;智能体和环境交互&#34;&gt;智能体和环境交互&lt;/h3&gt;
+&lt;p&gt;&lt;img alt=&#34;Agent与环境交互示意&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_agent_environment.png&#34;&gt;
+&lt;em&gt;图1: Agent 与环境交互的基本结构。Agent 根据当前状态 $s_t$ 选择动作 $a_t$，环境依据状态转移概率 $p(s&amp;rsquo;,r|s,a)$ 返回下一状态 $s_{t+1}$ 和奖励 $r_t$。&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;上面的图展示了RL智能体与环境交互的结构。这个示意图是很广义和普遍的：&lt;em&gt;&lt;strong&gt;action&lt;/strong&gt;&lt;/em&gt;可以是加载在机械臂电机上的控制电压或者是PWM信号，也可以是高级别的决策，例如是否要变道；&lt;em&gt;&lt;strong&gt;state&lt;/strong&gt;&lt;/em&gt;也比较灵活，可以看作是传感器回传的数据，也可以看作是在空间中特定符号描述的物体信息。&lt;/p&gt;
+&lt;h3 id=&#34;奖励&#34;&gt;奖励&lt;/h3&gt;
+&lt;p&gt;奖励这个概念我认为比较模糊，或者说它的来源可以是人为设计，也可以是环境给出。在机器人领域，奖励稀疏是一个常见问题，没有奖励的情况下，智能体很难学到真实的状态价值或者动作价值，那么策略的优化就很难进行下去。针对这个问题，后续专门讨论。&lt;/p&gt;
+&lt;h3 id=&#34;策略&#34;&gt;策略&lt;/h3&gt;
+&lt;p&gt;策略$\pi$是智能体在状态$s$下对动作$a$的选择，或者是一个从状态到动作的映射关系。它可以是一个确定性的函数，例如DDPG和TD3那样输出准确的动作，也可以是一个随机的概率分布，例如PPO输出的是动作的高斯分布期望，可以利用这个期望生成一个分布，然后从分布中采样出来一个具体的动作。&lt;/p&gt;
+&lt;h3 id=&#34;状态价值vs&#34;&gt;状态价值$V(s)$&lt;/h3&gt;
+&lt;p&gt;系统在状态$s$下，根据某个策略$\pi$采取行动，在后续和环境交互的过程中，得到的收益$G$的期望。&lt;/p&gt;
+&lt;p&gt;$$
+\begin{aligned}
+&amp;amp; V(s)=\mathbb{E} _{\pi}(G|S=s) \\
+&amp;amp; G=R _{t+1} + \gamma R _{t+2}+ \gamma ^2 R _{t+3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t+k+1}
+\end{aligned}
+$$&lt;/p&gt;
+&lt;h3 id=&#34;行动价值qsa&#34;&gt;行动价值$Q(s,a)$&lt;/h3&gt;
+&lt;p&gt;在状态$s$下，采取行动$a$之后，在后续和环境交互的过程中，得到的收益$G$的期望。
+$$
+\begin{aligned}
+&amp;amp; Q(s,a)=\mathbb{E} _{\pi}(G|S=s,A=a) \\
+&amp;amp; G=R _{t+1} + \gamma R _{t+2}+ \gamma ^2 R _{t+3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t+k+1}
+\end{aligned}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>《置身事内：中国政府与经济发展》</title>
+      <link>http://localhost:1313/posts/2024-07-25-book-china--economy/</link>
+      <pubDate>Thu, 25 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-25-book-china--economy/</guid>
+      <description>&lt;p&gt;&lt;img alt=&#34;置身事内&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/China_eco_gov.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;我作为一个经济和政府运作逻辑的小白，最近看到了一本很多人推荐的书《置身事内：中国政府与经济发展》。希望以此为切入点，了解中国政府在中国经济发展中发挥了什么作用。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;我很喜欢两部国产电视剧，一部是《大明王朝1566》，一部是《走向共和》。这两部剧有个共同点：开场第一集中，那些历史上赫赫有名的大人物们，出场都没有半点慷慨激昂或阴险狡诈的样子，反倒都在做世上最乏味的事——算账。大明朝的阁老们在算国库的亏空和来年的预算，李鸿章、慈禧和光绪则在为建海军和修颐和园的费用伤脑筋。然而算着算着，观众就看到了刀光剑影，原来所有的政见冲突和人事谋略，都隐在这一两一两银子的账目之中。要真正理解政府行为，必然要了解财税。道理很朴素：办事要花钱，如果没钱，话说得再好听也难以落实。要想把握政府的真实意图和动向，不能光读文件，还要看政府资金的流向和数量，所以财政从来不是一个纯粹的经济问题。党的十八届三中全会通过了《中共中央关于全面深化改革若干重大问题的决定》，明确了财政的定位和功能：“财政是国家治理的基础和重要支柱，科学的财税体制是优化资源配置、维护市场统一、促进社会公平、实现国家长治久安的制度保障。”&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;政府想要集中力量办大事，必须手里有足够的资金来支持，制度再完善，武力再强大，没钱，就会崩溃。结合《显微镜下的大明》这本书，明朝建国初期，首先做的事情就是把全国的人口和当时最重要的生产资料&amp;ndash;土地的情况搞清楚，然后根据这些资料制定对应的制度来收取赋税。中央对地方的实际情况了解得越清楚，政策制定和执行才可以越畅通，明末的乱世，就是中央对地方的信息不对称，很多财富都暗藏在地方豪强手里，国家知道的财富乘以日益提高的税收百分比并不足以支撑国家的正常运转，然后就没有然后了。&lt;/p&gt;
+&lt;p&gt;所以，本书研究的，或者是揭示出来的，是我们身处时代下，每天都在发生事情的背后逻辑，搞清楚这个逻辑对每一个人，都是有好处的。&lt;/p&gt;
+&lt;h2 id=&#34;财税与政府行为&#34;&gt;财税与政府行为&lt;/h2&gt;
+&lt;h3 id=&#34;分税制改革&#34;&gt;分税制改革&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;1994年的分税制改革把税收分为三类：中央税（如关税）、地方税（如营业税）、共享税（如增值税）。同时分设国税、地税两套机构，与地方财政部门脱钩，省以下税务机关以垂直管理为主，由上级税务机构负责管理人员和工资。这种设置可以减少地方政府对税收的干扰，保障中央税收收入，但缺点也很明显：两套机构导致税务系统人员激增，提高了税收征管成本，而且企业需要应付两套人马和审查，纳税成本也高。2018年，分立了24年的国税与地税再次开始合并&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;经过分税制改革，中央对地方的税收收入大幅度提高，但是明显对地方的税收入是有很大影响的，所以地方的阻力很大。国家通过增值税、企业所得税等税种，大大提高了中央的预算收入占比GDP的比例，从原来的22%变为了55%并且之后稳定维持在这一水平。具有深远的意义：大大增强了中央政府的宏观调控能力，也保证了集中力量办大事的能力，例如过气改革和国防现代化建设，以及应对外部的金融危机和内部的重大冲击，例如汶川地震和1997，2008年的金融危机。&lt;/p&gt;
+&lt;h2 id=&#34;政府投融资与债务&#34;&gt;政府投融资与债务&lt;/h2&gt;
+&lt;h3 id=&#34;土地资本化&#34;&gt;土地资本化&lt;/h3&gt;
+&lt;p&gt;再穷的国家也有土地，土地本身并不值钱，值钱的是土地上面的经济活动。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;土地资本化的魔力，在于可以挣脱物理属性，在抽象的意义上交易承诺和希望，将过去的储蓄、现在的收入、未来的前途，统统汇聚和封存在一小片土地上，使其价值暴增。由此产生的能量不亚于科技进步，支撑起了工业化和城市化的巨大投资。经济发展的奥秘之一，正是把有形资产转变成为这种抽象资本，从而聚合跨越空间和时间的资源。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;作者以成都的宽窄巷子为例，讲了成都文旅集团作为典型的政府融资平台类公司，持有从政府拿到的土地使用权，可以从政府获得各类补贴，而且有政府作为背景，可以融资。&lt;/p&gt;
+&lt;p&gt;虽然通过土地金融可以很快地搞投资建设，但是需要大量的资金，分税制改革后，地方政府的税收进一步减少，所以，如何为政府搞到钱，就是摆在眼前的一个最大问题。从而，国家开发银行和城投公司诞生了。政府有钱了，就可以大兴土木进行土地开发和基础设施建设，从而极大地刺激经济的增长，而经济的增长又可以带动土地的升值，然后利用土地升值偿还巨额的贷款。这样的循环前提条件是经济一直以较高的速度发展，一旦经济发展停滞不前，就会带来连锁反应，这套模式就会崩盘。国家为了避免政府债务出现问题，出台了四项举措：
+第一项就是债务置换，从2015年新版《预算法》生效后开始，到2019年基本完成。简单来说，债务置换就是用地方政府发行的公债，替换一部分融资平台公司的银行贷款和城投债。第二项改革是推动融资平台转型，厘清与政府之间的关系，剥离其为政府融资的功能，同时破除政府对其形成的“隐性”担保。第三项改革是约束银行和各类金融机构，避免大量资金流入融资平台。这部分监管的难点不在银行本身，而在各类影子银行业务。第四项改革就是问责官员，对过度负债的行为终身追责。这项改革从2016年开始。2018年，中共中央办公厅和国务院办公厅正式下发《地方政府隐性债务问责办法》，要求官员树立正确的政绩观，严控地方政府债务增量，终身问责，倒查责任。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;土地财政与土地金融&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Land_finance.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;政府产业引导基金&#34;&gt;政府产业引导基金&lt;/h2&gt;
+&lt;p&gt;作为科技行业的从业者，或多或少听说了政府的动作对于成千上万个企业的巨大影响力。政府的意志力和决定如何通过非常坚实的“抓手”去执行下去，就是非常值得研究和思考的。在这个商品经济时代，任何商业行为背后都是金钱在驱动着，我们看到的一切经济活动，都被金钱这只无形的大手推动着。&lt;/p&gt;
+&lt;p&gt;学习政府产业引导基金，正好能够理解最近十年来政府为了推动工业化的发展所采取的较为具体的举措。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;私募基金，简单说来就是一群人把钱交给另一群人去管理和投资，分享投资收益。称其为“私募”，是为了和公众经常买卖的“公募”基金区别开。私募基金对投资人资格、募资和退出方式等都有特殊规定，不像公募基金的份额那样可以每天买卖。图4-1描绘了私募基金的基本运作方式。出钱的人叫“有限合伙人”（limited partner，以下简称LP），管钱和投资的人叫“普通合伙人”（general partner，以下简称GP）。LP把钱交给GP投资和运作，同时付给GP两种费用：一种是基本管理费。一般是投资总额的2%，无论亏赚，每年都要交。另一种是绩效提成，行话叫“carry”。若投资赚了钱，GP要先偿还LP的本金和事先约定的基本收益（一般为8%），若还有多余利润，GP可从中提成，一般为20%。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;a href=&#34;https://mp.weixin.qq.com/s/8ySw_Up2IuZRpmL66ehj-w#&#34;&gt;雷军&amp;ndash;北京小米智造股权投资基金&lt;/a&gt;
+这个案例正好可以帮助我学习私募基金和产业引导基金。&lt;code&gt;小米私募股权基金管理有限公司&lt;/code&gt;的角色是GP, LP是小米智造的17位股东成员。小米募集的资金七成都来自于政府引导基金，其中，北京市政府引导基金投入了20亿元。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;作者在后面还分析了兴起的制度条件，产业条件和金融条件。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;政策条件&#34;&gt;政策条件&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;2005年，发改委和财政部等部门首次明确了国家与地方政府可以设立创业投资引导基金，通过参股和提供融资担保等方式扶持创投企业的设立与发展。自2015年起，财政部和发改委陆续出台了一系列针对政府引导基金的管理细则，为各地提供了行动指南。其中最重要的是两点。第一，再次明确“利益共享、风险共担”原则，允许使用财政资金的政府投资基金出现亏损。第二，明确了财政部门虽然出资，但“一般不参与基金日常管理事务”，并且明确要求各地财政部门配合，“积极营造政府投资基金支持产业发展的良好环境”，推动政府投资基金实现市场化运作。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;产业条件&#34;&gt;产业条件&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;绝大多数政府引导基金最终都投向了战略性新兴产业（以下简称“战新产业”），这是由这类产业的三大特性决定的。首先，扶持和发展战新产业是国家战略，将财政预算资金形成的引导基金投向这些产业，符合政策要求，制度上有保障。从“十二五”规划到“十三五”规划，国务院都对发展战新产业做了专门的规划，将其视为产业政策的重中之重。要求2015年战新产业增加值占GDP的比重需达到8%（已实现）；2020年达到15%；2030年，战新产业应该发展成推动我国经济持续健康发展的主导力量，使我国成为世界战新产业重要的制造中心和创新中心。在这两个五年规划中，都提出要加大和创新财税与金融政策对战新产业的支持，明确鼓励发挥财政资金引导作用，吸引社会资本，扩大投资规模，促进战新产业快速发展。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;金融条件&#34;&gt;金融条件&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;引导基金大多采用“母基金”方式运行，与社会资本共同投资于市场化的私募基金，通过后者投资未上市公司的股权。这种模式的繁荣，需要三个条件：有大量的社会资本可以参与投资、有大量的私募基金管理人可以委托、有畅通的投资退出渠道。其中最重要的是畅通的资本市场退出渠道。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;遇到的问题&#34;&gt;遇到的问题&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;因为是投资新兴的行业，这些行业还需要大量的研发工作，才能使得产品日趋成熟，所以未来是否可以盈利，是一个比较随机的事情，容易亏钱。&lt;/li&gt;
+&lt;li&gt;源自财政资金的地域属性与资本无边界之间的矛盾。内地的基金不容易吸引到产业，而且不希望到东部投资很有前景的产业。为他人做嫁衣。&lt;/li&gt;
+&lt;li&gt;资本市场的资金来源，有80%是社会资本，社会资本的动作对政策和金融情况很敏感，不容易筹集到足够的资金开展工作。&lt;/li&gt;
+&lt;li&gt;LP侧政府人员素质要求高，但是分配制度是随公务员的走，不容易配备足够优秀的人才。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;城市化与不平衡&#34;&gt;城市化与不平衡&lt;/h2&gt;
+&lt;h3 id=&#34;房价和居民债务&#34;&gt;房价和居民债务&lt;/h3&gt;
+&lt;p&gt;因为大城市拥有优质的工作机会，良好的教育环境和医疗条件，吸引了大量人口涌入，房价上涨开始于2008年。根据中国人民银行的这项调查，城镇居民2019年的负债中有76%是房贷。而从资产端看，城镇居民的主要财产也就是房子。房产占了家庭资产的近七成，其中六成是住房，一成是商铺。而在美国居民的财富中，72%是金融资产，房产占比不到28%。(15)中国人财富的压舱石是房子，美国人财富的压舱石是金融资产。这个重大差别可以帮助理解两国的一些基本政策，比如中国对房市的重视以及美国对股市的重视。当经济发展不景气的时候，很多买房者会面临债务危机，因为他们在之前的乐观的环境下，例如收入持续上涨，房价持续上涨，选择忽略了经济如果下行，收入难以按照预期的速度增长的情况，这种情况确实在2020年疫情之后发生，部分人选择提前偿还贷款，部分人为了还月供降低消费水平，消费水平降低会带来国内消费市场的低迷，影响了商品提供方的收益，而广大的职工又在这些企业当中工作，他们的收入可想而知地受到影响。&lt;/p&gt;
+&lt;h2 id=&#34;政府与经济发展&#34;&gt;政府与经济发展&lt;/h2&gt;
+&lt;p&gt;随着经济的持续发展，政府在整个国民经济当中占有的比重会越来越大，这是“瓦格纳法则”。从改革开放到今天，政府为了推动经济发展，主要是以强调生产力建设为主要手段，例如开发房地产，修公路，高铁，投资建设工业园区等等，这些举措极大地提升了我国的工业制造水平，全球的进口产品中，有很大的比例都是中国制造。但是，政府的重点关注目标应该从生产力建设转向服务型政府，也就是加大对民生的投入。从原来的重点投资物，变为重点投资人。&lt;/p&gt;
+&lt;h2 id=&#34;总结&#34;&gt;总结&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;经济学是对经济现象的解读。现象复杂多变，偶然因素非常重要，过往并非必然，未来也不能确定。但经济学研究依然是有意义的。它能从过往事件的来龙去脉中提取一些因素，思考这些因素的不同组合，形成对事件的多种解读，给人启发。但什么是相关因素？怎么组合？又如何解读？这些都与所研究事件的所在环境密不可分。任何合格的理论当然都能自圆其说，但应用理论要跳出理论本身，才能审视其适用性和实用性，这种应用因时、因地、因人而异。对相关因素的提取和组合，本质上是对“何谓重要”这一问题的反复考量，其判断标准只能在比较中产生。这一“比较”的视野，要在空间和时间两个维度展开，既包括跨地区、跨国家的比较，也包括跨时期的比较。研究者不仅要深入了解本国现状和历史，也要了解所比较国家的现状和历史。比较数据和表面现象容易，但要比较数据产生的过程和现象发生的机制就难了，而这些往往更加有用。发展经济学的核心就是理解发展过程，因此必须理解初始条件和路径依赖，对“历史”的延续性和强大力量心存敬畏，对简单套用外来理论心存疑虑。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;整本书当中，每一个章节最后的推荐阅读材料也是十分有用的。作者把本章涉及到的问题，一一列举了参考资料，并且加以评论和推荐，值得继续深入阅读。&lt;/p&gt;
+&lt;p&gt;作者特别指出了，如何提出好的问题，是指定措施和思考解决方案的第一步，在很多时候，能够提出问题，就说明对整个事情或者状态有了很深入的了解，针对问题，已经有了答案。&lt;/p&gt;
+&lt;h2 id=&#34;摘录&#34;&gt;摘录&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;当经济增速放缓、新创造的机会变少之后，年轻人间的竞争会更加激烈，而其父母的财富优势会变得更加重要。如果“拼爹”现象越来越严重的话，社会对不平等的容忍程度便会下降，不安定因素会增加。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这里的思考是：这一代年轻人的父母，曾经经历的时代是经济发展高速期，有头脑肯吃苦的那一代都获得了想要的财富。这一代人如果复刻上一代人的思路，会发现他们的收获可能无法匹配付出，会产生两种后果，一种是躺平，另外一种可能是调查为什么会这样，或者直接怨天尤人。美国上世纪的嬉皮士运动就是这样。发达资本主义国家，例如英国美国的过去，一定程度上非常具有参考意义，可能中国的现在就是他们的过去，美国20世纪60年代的年轻人为什么会发起嬉皮士运动，难道者的是他们想开辟新的文化风潮？还是他们对社会的不满，激发的种种行为最终固化了这样的文化？我们看到的最终的结果并不是内在驱动这些行为的目标，需要好好思考为什么他们要做这些事情，结合当下的我们，应该能够提供一些答案出来。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;1968年4月，聚在纽约汤普金斯广场公园听歌的人们&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/hips.png&#34;&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;成功的政策背后是成功的协商和妥协，而不是机械的命令与执行，所以理解利益冲突，理解协调和解决机制，是理解政策的基础。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;政策的制定，一定是通过实践反复修正和完善的结果。政府在出台新政之后，需要怀着敬畏的心态，从不同的维度来思考，因为政策某种程度就是对人行为方式的约束，既然要约束，就说明在广大的中国大地上，已经发生了很多类似的未受到约束的事情，他们为什么要做这些事情？值得思考背后的原因。这样，才可以深刻理解政策的意图，那么对于实际执行政策的官员，才可以在实际面临问题时候正确解读，做出正确的决策。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>设计模式之“状态模式”</title>
+      <link>http://localhost:1313/posts/2024-07-23-designpattern-statemode/</link>
+      <pubDate>Tue, 23 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-23-designpattern-statemode/</guid>
+      <description>&lt;h2 id=&#34;由来&#34;&gt;由来&lt;/h2&gt;
+&lt;p&gt;最近的项目当中，需要添加新的功能来满足产品需求。因为我们的产品是一个特殊的器械，在机器运行的任何时刻，都可能会有人的操作和介入，所以之前的代码对于各种从外部进来的输入都是使用&lt;code&gt;if else&lt;/code&gt;的结构来解决。困难是随着功能的增加，这个&lt;code&gt;if else&lt;/code&gt;的代码块会越来越多，并且新的代码可能会把原来的功能破坏掉。为了解耦不同状态下的操作，并且让系统有正确的输出，我们决定重构这一部分的代码。&lt;/p&gt;
+&lt;h2 id=&#34;最近的体会&#34;&gt;最近的体会&lt;/h2&gt;
+&lt;p&gt;雷军作为中国最早的一批软件开发从业者，他曾经说过，在写代码的过程中，如果你认为某一个地方可能会出现错误，那么，那个地方就或多或少一定会出问题。这句话带给我的体会就是，软件设计的思路一定要非常清楚，功能之间耦合度降到最低，这样的代码才会拥有更高的品质。&lt;/p&gt;
+&lt;h2 id=&#34;状态模式&#34;&gt;状态模式&lt;/h2&gt;
+&lt;p&gt;状态模式的设计思路很像有限状态机。在任何一个时刻，系统都处于某一种状态下，在这种状态下，系统拥有独特的行为。并且由于某种原因（可能是外部的输入或者系统运行到了某些条件）系统的当前状态会切换到其他的状态继续运行。这种切换是随时的，从用户的角度来看，只是行为发生了变换，但是软件的实现是通过不同的类（Status）来实现这些行为的。&lt;/p&gt;
+&lt;h2 id=&#34;具体实现&#34;&gt;具体实现&lt;/h2&gt;
+&lt;p&gt;本文参考了两本书，一本是《Dive into Design Patterns》,另外一本是《Head First 设计模式》。
+在下面的结构图当中，业务接口&lt;code&gt;Context&lt;/code&gt;并不直接实现自己的成员函数，而是通过调用&lt;code&gt;State&lt;/code&gt;对象的成员来完成。&lt;code&gt;State&lt;/code&gt;作为实际工作的对象&lt;code&gt;ConcreteStates&lt;/code&gt;的基类，提供了一切可能被&lt;code&gt;Context&lt;/code&gt;调用的接口。在&lt;code&gt;ConcreteStates&lt;/code&gt;内部，针对自己的状态特点，可以实现在不同接口调用下的系统行为，并且还可以直接操作&lt;code&gt;Context&lt;/code&gt;对象的指针，来实现状态的切换。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;Dive into Design patterns&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/designPattern.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;状态模式的结构&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/status_designPattern.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;总结&#34;&gt;总结&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;状态模式最大的特点是用户所关心的对象（&lt;code&gt;Context&lt;/code&gt;）的状态和行为随着时间推移发生变化并不是这个对象自己切换出来的，而是它所拥有的状态自己做出了响应和切换为下一个状态。而且状态自己在赋值新状态的时候，是调用&lt;code&gt;Context&lt;/code&gt;的方法获取的，获取到的这个新状态是在&lt;code&gt;Context&lt;/code&gt;创建的时候已经创建好的,只能在有限的几个状态下切换。&lt;/li&gt;
+&lt;li&gt;在设计状态的时候，每一种状态要保证相互独立，没有耦合，而且需要做一个默认状态，这个状态包含了所有没有考虑进去的情况，在这种情况下，做统一的安全处理。&lt;/li&gt;
+&lt;/ol&gt;</description>
+    </item>
+    <item>
+      <title>《禅与摩托车维修艺术》</title>
+      <link>http://localhost:1313/posts/2024-07-15-zen/</link>
+      <pubDate>Mon, 15 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-07-15-zen/</guid>
+      <description>&lt;p&gt;&lt;img alt=&#34;father and son&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/father_and_son.jpg&#34;&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;作为一部自传体小说，斐德洛的故事，其实正是本书作者罗伯特·M. 波西格的人生。在《柏拉图对话集》中，斐德洛是一个爱好哲学的普通雅典青年。而在本书中，斐德洛重返人间。他曾经是学哲学的学生，同时也是教修辞学的教师，但是由于哲学理念与文化的世界观冲突，他终于因精神崩溃而住院。出院后，他希望从狭窄而受限的自我解脱，于是开始了一场骑着摩托车横跨美国大陆的万里长旅，一路经过复杂经验与反省思考，终于暂时恢复了灵性的完整与清静。这一回归自己的过程，是通过不断寻求“良质”，即东方哲学里的禅思，并用摩托车维修之道对其进行阐释而实现的。这便是《禅与摩托车维修艺术》一名的由来。与此同时，书中还批评了西方世界的二分法或二元论，如人文与科技、精神与物质、神秘主义与机械论、艺术与工业、心灵与机械、东方与西方等相对意识。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img alt=&#34;旅行轨迹&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Zen_routing1.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;旅行轨迹2&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Zen_routing3.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;旅行轨迹3&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Zen_routing4.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;旅行轨迹4&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Zen_routing5.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;总体&#34;&gt;总体&lt;/h2&gt;
+&lt;p&gt;旅行分成两部分，前一部分是以博兹曼为终点，就是旅行轨迹2当中他们从黄石公园的高山下山到达山口的地点，作者和他的孩子还有朋友一起从Minneapolis出发，后半段旅程只有作者和他的儿子两个人。我通过作者在书中的描述，把他们经过的每一个地名都搜索了出来，在谷歌地图上面生成了他们的旅行轨迹。&lt;/p&gt;
+&lt;h2 id=&#34;科技与艺术&#34;&gt;科技与艺术&lt;/h2&gt;
+&lt;p&gt;作者写书是上个世纪的60年代，科技工作者和艺术工作者对于摩托车的修理的看法截然不同，作者认真思考了这个问题，为什么搞艺术的人无法从理性的角度对摩托车修理分析，搞技术的人说出来的话让搞艺术的人觉得很枯燥无趣。从而上升到哲学高度，从古希腊开始，古典的形式主义占据了主导地位，人类文明的发展沿用了这一套方法论。浪漫主义的人试图打翻这种绝对的统治。作者在试图找到另外一种东西，这种东西一定可以统一二分法，这种东西就是“良质”。&lt;/p&gt;
+&lt;p&gt;其实读下来，作者是从一些具体的现象开始引发思考，一步一步抽象，作者想归纳出来背后到底是什么在发挥作用。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;如果有人问“什么是良质呢”，这只不过是一个问题而已。但是如果由他来问，因为他有过去的经验，这个问题就会像向四面八方散开的波浪，并不是一层一层的结构，而是像一个同心圆，在中间激起波浪的，是良质。当这些思想的波浪向四面八方散开的时候，我确信他衷心期望它们能够到达某些思想的彼岸，这样他就能与这些思想结构连接在一起。但是如果真的有任何彼岸存在，那么一直到最终，他也未能到达彼岸。对他来说，只有不断向四面八方结晶的波浪。我现在就是要尽力追随这些结晶的波浪，也就是他研究良质的第二个阶段。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;良质&#34;&gt;良质&lt;/h2&gt;
+&lt;p&gt;上面这段话是很棒的比喻！在中间的刺激我们并不能描述，这个刺激从哪里来的也说不清楚。但是可以描述或者定义激起来的波浪，通过研究波浪来间接研究中心的刺激，也就是良质。
+作者认为通过良质，可以从更高的维度将浪漫和古典进行统一，也就是情感一方的浪漫的良质和更加理性和客观的古典的良质。
+感性和理性并不是对立的，而是统一的。&lt;/p&gt;
+&lt;p&gt;作者分析老子的《道德经》里面的那段，我认为是比较有突破的地方：斐德洛认为的良质就是道，两千四百年前的老子其实已经对这个问题进行了思考。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;道可道，非常道。名可名，非常名。无名，天地之始；有名，万物之母。故常无欲，以观其妙；常有欲，以观其徼。此两者，同出而异名，同谓之玄。玄之又玄，众妙之门。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这段里面的道就是书中的良质。是一个整体，但是又可以根据时间序列将它划分为可以描述的常识和不可描述的玄妙，这里的玄妙应该是尚未发现的规律，可以描述的常识是可被定义的科学概念或者是事物。常无欲和常有欲，就是说内心是否怀着动机或者说是欲望，如果动机很微弱，就是无，很多人无法做到的无我状态，如果能够进入无的状态，就可以感受到道的玄妙，这里我认为是某种参考系统，能够看到类似于坐标轴一样的外观，而且它们相互正交，非常容易通过组合来实现对主观和客观的准确描述；如果目的性很强，引申一下其实就是为了某个目标想办法，付出努力，就可以感受到道带给我们的无穷力量。&lt;/p&gt;
+&lt;p&gt;无欲的时候，是培养我们发现道的能力，让我们认清楚主观世界和客观世界里面，底层都有哪些基本组成单元，以及它们之间的运转逻辑是什么样子；
+有欲的时候，是利用道的超能力帮助我们解决具体问题的时候。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;道沖，而用之或不盈。渊兮，似万物之宗。挫其锐，解其纷，和其光，同其尘。湛兮，似或存。吾不知谁之子，象帝之先。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这段说的是道的来源以及它具有什么样的特性。道是空虚的，但是作用非常巨大或者是无限大，意义深远，就像所有一切的根源。挫掉道的锐利，去掉结根，遮挡道的光亮，和尘埃混合在一起。道似乎消失了，但是又似乎存在着。不知道道从何而来，似乎是比第一个神的出现还要早。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;执古之道，以御今之有。能知古始，是谓道纪。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;利用之前的道，来解决当前的问题，更进一步，还需要通过当前问题提出如何完善道，从以前到现在和未来，需要清楚道的规律是不变的，但是道本身一直在变化。或者换个说法就是道本身是一直随着时代进步也在进步，但是人类文明一定是朝着进步的方向发展的。&lt;/p&gt;
+&lt;h2 id=&#34;实质与方法&#34;&gt;实质与方法&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;实质是不会改变的，而方法则没有所谓的永久。实质和原子的形态有关，方法则和原子的功能有关。在科技的写作上，也有相似的划分：物理描述和功能描述。如果想把很复杂的机械结构描述清楚，最好先描述它的实质层面；它的次级组件和零件。然后再描述它的方法层面：按照次序执行的各项功能。如果你把实质和方法混淆了，那么读者就不可能了解你说的是什么。然而要把这种划分的方法应用在各种知识领域，比如英语作文当中，似乎并不实际。因为所有的学院科目都包含这两种层面。而良质似乎与这两者都无关。良质没有实质，也不是一种方法，它超越这两个范畴。如果一个人盖房子的时候会用到铅垂线和水平仪，那是因为垂直的墙壁比弯曲的墙壁品质要好，不容易坍塌。所以良质不是方法，而是方法所追求的目标。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;良质是引领方法向前进步的火车头，或者是作者说得火车轨道。每个人心中的良质都是不同的，这就造成不同的人对于同一件事情的处理方法是不同的，他们在心中对方法的取舍就是依靠良质完成的。&lt;/p&gt;
+&lt;h2 id=&#34;儒勒昂利庞加莱&#34;&gt;儒勒·昂利·庞加莱&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;那么如何去选出那个一再出现的有趣事实呢？科学方法就是对事实进行选择的过程。首先，集中精力想出一个方法是必需的，因为方法并不唯一，所以有很多方法被想了出来。以有规律的事实开始是合适的，但是在一个超越所有疑问的规则被建立后，跟它相符的事实便变得枯燥乏味，因为它们不能再教给我们任何新东西了。于是例外就变得很重要。我们找寻的不是相同处而是歧异处，我们要选择最引人注意的歧异，因为它们最震撼人心，而且也最具指导意义。我们首先去找这个规则最可能失败的那些情况。通过在空间中走得更远，在时间中走得更久，我们也许会发现我们通常的规则完全被推翻，而这些重大的翻转使我们能更清楚地看到那些也许会发生在我们周遭的小变化。但是我们的目标不是再次确认相同或是歧异，而是要在表面的不一致中识别出深层的一致性。特别的规则似乎在一开始总是不一致，但是看得更仔细一点的话，我们将看到，大体上来说它们都很相似：虽然问题不同，但是形式相似，各部分的次序也相似。当我们带着这种偏见去注视它们，就会看见它们逐渐变大而且有可能涵盖一切事物。正是这一点造就了某些事实的价值，这些事实构成了一个集合，而且告诉我们它可靠地反映了所有同类集合。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;第21章节讲述的是如何一步步把良质搞清楚的过程。这一章节很实用，尤其这段话：从现象抽象出一种对现象的描述语言或者方法，就是作者说的在表面的不一致中识别出深层的一致性，然后，基于这一套描述方法，对待研究的对象进行调控或者变换，得到的新的表述方法再remap回到当前的现实去验证。&lt;/p&gt;
+&lt;h2 id=&#34;其他的碎片感悟&#34;&gt;其他的碎片感悟&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;由于多年来感官累积的资料，我们已经在心目中建立起这样一部直觉的摩托车。随着新的讯息进来，这部摩托车会不断改变。就拿我所骑的这部车子来说，由于路况的关系，它的变化非常迅速而短暂。这一路上，我一直都在注意而且不断修正，一旦所得的资料没有价值，我就会把它忘掉，因为还有更多新的讯息要进来。这部先验摩托车的其他变化则比较缓慢（比如说，油箱的油逐渐减少，轮胎的橡胶逐渐磨损，螺栓和螺母逐渐松脱，制动蹄和制动鼓的间距逐渐改变）。这部摩托车还有一些方面变化极其缓慢，看起来几乎像是永远不变一样——比如说，油漆、轮子的轴承、控制的线缆——而这些其实也一直在改变。如果我们从足够长的时间段来看，由于路面的震动、温度的改变，以及内部零件的耗损，车子的整个骨架都会改变。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这部分特别像贝叶斯滤波的原理，我们每个人都对摩托车的样子，比如材质，反光系数，质量等等具有先验的估计，这个估计是呈现某种随机变量分布的，然后当感知系统感受到外界客观的摩托车，对应的某个参数会和先验参数进行后验估计得到新的参数分布，然后存储到大脑永久记忆区域。在这个后验估计的过程中，不同的人采用不同的方法&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这名像驴子一样、假设出来的学生会继续游荡一阵子，他可能得到另外一个像他抛弃的教育一样珍贵的学习机会，就是所谓的“社会大学”，不再浪费时间和金钱去做一头高级的驴子。他可能找到一份工作，安然地做一头低级的驴子，比如，一名技工。然而事实上他真正的地位会提高，因为这样才可能有所贡献而带来改变。可能他终身就做这份工作，也可能他达到一定的水平，然而并不满足于此。
+短则六个月，长则五年，很可能会发生变化，他对自己每天机械化的工作越来越不感兴趣，过去被学校的理论和分数所压抑的创造本能，现在很可能因为工作的无聊而被唤醒了。他花了数千个钟头去解决机械方面的问题，因而对机械设计越来越有兴趣。他可能想要自己设计机器，因为他相信自己会做得更好，于是尝试改造一些发动机。成功之后，就想要更大的成功。然而这个时候，他可能会遇到瓶颈，因为他没有理论基础。于是，他就会发现以前自己丝毫不感兴趣并觉得一无是处的理论，现在变得有了一些值得敬重之处。
+于是他就会回到没有分数也没有学位的学校里，这时他变了，不再为分数而来，而是为了追求真正的知识。他不需要别人强迫他去学习，他的动力来自于内在。这个时候，他就是一个自由的人，他不需要许多规章制度的督促。事实上，如果老师上课的态度松懈，他倒可能会唐突地问许多问题去督促老师。他来这儿是要学东西的，并且付了钱，那么老师们最好也不要懈怠。
+一旦转变成这种学习动机，就会产生强大的爆发力，在没有分数和学位的教育机构里，学生找到了自己。他不会止步于工程学浅层的操作知识，物理和数学自然会成为他的兴趣，因为他清楚自己需要这些深层的知识。而冶金和电子工程也会得到他的青睐。他对这些抽象的学问熟悉后，就去研究其他的理论，虽然和机械不直接相关，但是也会成为他更大的目标的一部分。这个更大的目标可不是今天的大学所鼓吹的教育目标，在那里，虽然你得到了分数和学位，让人以为你有很高深的知识，然而事实上，只有你自己知道内在空空如也。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这段有切身体会，高等学校在教育fresh man之前，首先需要把为什么要学习这门课程的why讲清楚，包括但不限于讲清楚行业痛点，带领学生去实习，把一线的痛点理清楚，然后再通过学习去解决这些痛点。这样学生在学习的时候非常具有使命感，会主动寻找知识的内在联系，融合贯通地提出自己的思考。这段话跟家人讨论之后，他们都觉得我对这件事情的看法非常理想化，在实际操作中是不可能的事情。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;他一直都没有爬到山顶，到了第三天晚上他就放弃了，因为他已经筋疲力尽，于是其他人继续前行，而他留下了。他知道自己还有些体力，但这些体力不够。他也有动力，但是也不够。他并不认为自己有傲慢轻视的心，但是他想通过这一趟朝圣来拓展自己的生活经验，以进一步地了解自己。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;参加不同的活动，把自己放在舒适区之外的地方，得到的感受可以有助于更深刻地了解自己。对生活的指导意义就是：不断尝试和接触新的领域，或者在自己的领域不断提出新的挑战，然后尽最大努力去完成或者实现出来。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;所以不应逃避被卡住的情形，它是达到真正了解之前的心灵状态。要想了解良质，不论是在技术工作上还是其他方面，放下自我，接纳这种被卡住的现象是个关键。无师自通的技术人员就是因为常常被卡住，才比接受过学院训练的人员更了解良质。因为他们懂得如何处理突发的状况。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这个说到了点子上。把自己融入到卡住的情形当中，先不要想解决方案，先假设自己卡在了那里，看看自己的周围都有啥，充分了解之后，再让良质发动去寻求解决的动作。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;“卓越”暗示着对生活的完整或唯一性的尊重，因而不喜欢专门化。它还暗示着对所谓的效率的轻视——它具有更高等级的效率，这种效率并不存在于生命的某一种才能中，而是存在于生命本身。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;作者在这一部分说的“卓越”我其实是没看懂的。说一下我的理解：就是说生活是一个内容非常丰富的集合，在这个集合当中有很多的领域，卓越追求的是在各个领域做出超过常人的水平，但是单独去考量每一个领域的时候，就会陷入如何评估你做的比别人好的问题，这个问题的解决方法其实还是需要一个参考系统来评判，这个系统的建立往往还是苏格拉底式的唯物的，清晰、可定义的具体的概念。所以思考哲学问题是不是需要先极端化地不顾一切地异常狠毒地走很远，然后再回头温柔地回望身后的场景，这样得到不一样的体会。&lt;/p&gt;
+&lt;h2 id=&#34;后续&#34;&gt;后续&lt;/h2&gt;
+&lt;p&gt;作者在书的后半段用了很大的篇幅来说古希腊的先贤们为了掌握更接近本真的道理，创建和很多的学派和涌现了许多代表人物。回想一下，至今仍然有很多的人在研究古希腊的文明，作者也提到，从那个时期到现在其实人类并没有实质性的认知进步。所以，研究古希腊的文明的发端，演进和消亡对于未来和当下具有指导意义。&lt;/p&gt;
+&lt;p&gt;没有太想好，过去的经验是不是应该合并到良质里面。场是临时性的任何人对话时维系的一种图像或者场景，在这个场中，两人脑子中的印象相似程度最大化。
+&lt;img alt=&#34;拙见&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/zen_arch.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;最近的生活&#34;&gt;最近的生活&lt;/h2&gt;
+&lt;p&gt;最近是北京最热的三伏天，周末的活动我们选择了门头沟的大山，因为那里海拔高，气温低，非常适合避暑乘凉。京蔚高速的通车极大地方便了北京到灵山的通行，开车走在桥隧比相当高的京蔚高速上面，让我有种错觉在穿越时空，回到了另外一个宇宙。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;东灵山&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/lingshan.jpg&#34;&gt;&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Nvidia Chat With RTX</title>
+      <link>http://localhost:1313/posts/2024-02-20-nvidia-chatrtx/</link>
+      <pubDate>Tue, 20 Feb 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-02-20-nvidia-chatrtx/</guid>
+      <description>&lt;h2 id=&#34;安装部署&#34;&gt;安装部署&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://us.download.nvidia.com/RTX/NVIDIA_ChatWithRTX_Demo.zip&#34;&gt;软件下载地址&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;安装界面&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;一路点击下一步安装即可。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;安装界面2&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install2.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;安装过程需要耐心等待，我可能等了差不多两个小时，最后安装成功。&lt;/p&gt;
+&lt;p&gt;安装完成之后，在桌面会出现&lt;code&gt;NVIDIA Chat with RTX&lt;/code&gt;快捷方式，就是一个启动脚本。
+如果是默认路径安装的话，需要修改&lt;code&gt;path&lt;/code&gt;：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;C:\Users\Yang\AppData\Local\NVIDIA\ChatWithRTX\RAG\trt-llm-rag-windows-main\config\preferences.json&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;&#34;&gt;
+&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;&#34;&gt;&lt;code&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;1
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;2
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;3
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;4
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;5
+&lt;/span&gt;&lt;span style=&#34;white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &amp;#34;dataset&amp;#34;: {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &amp;#34;path&amp;#34;: &amp;#34;C://Users//Yang//Desktop//rtx&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &amp;#34;isRelative&amp;#34;: false
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img alt=&#34;加参数&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_share_params.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;运行&#34;&gt;运行&lt;/h2&gt;
+&lt;p&gt;&lt;img alt=&#34;加载模型和参数&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install_running.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;根据路径下文件内容生成embeddings&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_install_running_finish.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;这里有一个问题就是：如果我的数据库当中增加或者减少文件，需要重新生成embeddings,这个过程很慢。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;GPU运行情况&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_GPU.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;问问题&#34;&gt;问问题&lt;/h2&gt;
+&lt;p&gt;由于我第一次指定的&lt;code&gt;path&lt;/code&gt;下文件数量很大，导致无法全部加载成功，我减少文件数量，单独加载一个关于bike fitting的书。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;测试&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_test.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;基础比例对判断的影响&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_cabs_accidents1.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;使用贝叶斯定理计算概率1&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_cabs_accidents2.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;使用贝叶斯定理计算概率2&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Chat_with_RTX_cabs_accidents3.png&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;感受&#34;&gt;感受&lt;/h2&gt;
+&lt;p&gt;同样的出租车问题，我几乎使用相同的单词来询问，给出的答案不统一。稳定性不够好。其他的测试后面再补充。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>迪拜AEEDC2024展会</title>
+      <link>http://localhost:1313/posts/2024-02-04-dubai/</link>
+      <pubDate>Mon, 05 Feb 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-02-04-dubai/</guid>
+      <description>&lt;h2 id=&#34;初到迪拜的印象&#34;&gt;初到迪拜的印象&lt;/h2&gt;
+&lt;p&gt;&lt;img alt=&#34;北京-迪拜&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Dubai_BJ2DB.png&#34;&gt;
+北京时间早上6点半的航班，首都机场T3航站楼早6：30出发，到达迪拜机场时间是北京时间下午三点。
+迪拜的地铁经过市区比较繁华的区域，因为我们参展的迪拜会展中心在城市中心地带，所以从机场可以很方便乘坐地铁到达我们的ibis酒店。
+提前办理好的漫游服务，到了迪拜无法使用，后来才知道是当地的服务商选择错误，选上DU的就可以了。&lt;/p&gt;
+&lt;h2 id=&#34;迪拜位置&#34;&gt;迪拜位置&lt;/h2&gt;
+&lt;p&gt;位于阿拉伯半岛，紧邻阿拉伯海湾。隔海相望的就是伊朗。我们在商业区见到了很多伊朗和巴基斯坦的人，他们在这里做生意，开出租车。&lt;/p&gt;
+&lt;p&gt;迪拜的城市建设总体上是从西南到东北沿着海岸线，机场在北部，南部有朱美拉棕榈岛，是著名的人工填海建成的岛屿。&lt;/p&gt;
+&lt;p&gt;&lt;img loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Dubai_Palm_Jumeirah.jpg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;最著名的应该是迪拜塔 &amp;ndash; Burj Khalifa，是世界上最高的建筑。&lt;/p&gt;
+&lt;p&gt;&lt;img loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Dubai_topview_Khalifa.jpg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Dubai_Khalifa.jpg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;在Dubai Creek河两岸，把迪拜分成了两个部分，东岸是迪拜老城区，西岸是迪拜新城区。我们到老城的时候，正好是周末，加上博物馆正在修缮，所以没能进去参观。我们在周边参观了一下，和新城的高楼耸立现代化的感觉很不一样，宛如两个世界。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;老城区&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Dubai_acientCity.jpg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;老城区&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Dubai_acientCity2.jpg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;乘船可以从西河岸到达对面，参观著名的黄金街。里面其实有很多不同种类的货品，黄金，香料，珠宝，纺织品等等。热闹，嘈杂，因为中国人经常光顾，所以商贩普遍都会一些中文，有一个小哥见到我们说了句：“兄弟，新上的货。”。&lt;/p&gt;
+&lt;h2 id=&#34;口腔展aeedc&#34;&gt;口腔展AEEDC&lt;/h2&gt;
+&lt;p&gt;中东最大的口腔展。开始时间是2月6号到8号。2月5号我们入馆部署机器设备，确保第二天能够正常展示。
+经过三天的展会，总体的感受如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;展位搭建和装修是2月5日晚上九点多完成的，施工进度比较缓慢。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;设备从开箱到部署运行结束，大约一个半小时时间。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;人流量比较大，由于我们的位置是在中国区的靠里面的地方，很多人关注的德国展区、日韩展区距离我们的展位比较远，没有吸引最大的流量。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在交流中，埃及、俄罗斯、伊朗沙特阿拉伯半岛上面的国家例如阿联酋、沙特阿拉伯、科威特等国家的牙医比较多，也有一些经销商。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;我们自己的产品思考：很多人看完功能或者还没看功能，就会首先询问价格，我认为设备向低成本迭代是一个必然的趋势，一定要把成本打压下来，终端的售价才可能展现出竞争力。&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;最后一天打包设备出现了或多或少的问题，但是都不算是大问题，打包时间持续了将近两个小时，装箱之后，粘贴好唛头之后，我们直奔迪拜机场，在机场的免税店购物，买了一些当地的特产，椰枣，巧克力和咖啡，乘坐晚上一点多的国航航班，返回国内。整体的体验来说，阿联酋航空的波音777乘坐体验还是要好一些，座位空间较大，服务次数和质量也更高一些。在回来值机的时候，因为是农历的中国除夕，机场到处都是浓郁的中国年的气氛，给我留下很深印象是一位尼泊尔的工作人员，她的中文非常流利，办事效率也很高，帮我们快速选好了座位。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;最后&#34;&gt;最后&lt;/h2&gt;</description>
+    </item>
+    <item>
+      <title>《思考，快与慢》</title>
+      <link>http://localhost:1313/posts/2023-12-24-book-thinking-fast-slow/</link>
+      <pubDate>Sun, 24 Dec 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2023-12-24-book-thinking-fast-slow/</guid>
+      <description>&lt;h2 id=&#34;第6章-意料之外与情理之中&#34;&gt;第6章 意料之外与情理之中&lt;/h2&gt;
+&lt;p&gt;讲系统1如何对发生的事件做判断的，分析了它的工作机理和存在的缺陷&lt;/p&gt;
+&lt;p&gt;讲了心理学家乔恩的故事，从第一次的惊喜到第二次的习以为常，因果关系的推导在系统1看来，会因为之前发生了一次小概率事件而把之后再次发生类似事件认为习以为常，我个人认为就是条件概率在第二次采样的时候被系统1无意识地调高了。&lt;/p&gt;
+&lt;h2 id=&#34;第16章-因果关系比统计学更有说服力&#34;&gt;第16章 因果关系比统计学更有说服力&lt;/h2&gt;
+&lt;p&gt;在16章节当中，列举了出租车逃逸的事例。这个问题是要求我们回答出租车是蓝色而不是绿色的概率是多少。&lt;/p&gt;
+&lt;p&gt;我们通过贝叶斯的思想来分析这个问题：
+事件B：出租车是蓝色的； 事件G: 出租车是绿色的；事件S：那个目击证人指认出出租车的颜色是蓝色的。&lt;/p&gt;
+&lt;p&gt;因为$P(B)=0.15$, $P(G)=0.85$，这两个概率是先验的，假如现场没有目击证人的任何证词，我们只能根据先验信息来判断肇事出租车是蓝色的概率是0.15。但是现场有目击证人，目击证人的观察也具有一定的不确定性，他能够正确辨认出租车颜色的概率是0.8。其实，作者想要读者思考的是如何根据目击证人的证词和先验概率分布来计算出租车是蓝色的后验概率，这个后验概率是$P(B|S)$，我们可以通过贝叶斯公式来计算：&lt;/p&gt;
+&lt;p&gt;$$
+P(B|S)=\frac{P(S|B)P(B)}{P(S)}
+$$&lt;/p&gt;
+&lt;p&gt;上面的公式当中，比较容易得到概率数据的项：&lt;/p&gt;
+&lt;p&gt;$P(S|B)=0.8$-&amp;gt;当出租车为蓝色时目击证人指认出租车是蓝色的概率，是一个条件概率；&lt;/p&gt;
+&lt;p&gt;$P(B)=0.15$-&amp;gt;现场的出租车颜色是蓝色的概率；&lt;/p&gt;
+&lt;p&gt;分母的$P(S)$是目击证人指认出租车是蓝色的概率，是一个边缘概率，在之前的卡尔曼滤波器学习笔记（一）当中提到过。如何确定这个概率的数值呢？我们可以通过全概率公式来计算：&lt;/p&gt;
+&lt;p&gt;$$
+P(S)=P(S|B)P(B)+P(S|G)P(G)=0.8\times 0.15+0.2\times 0.85=0.29
+$$&lt;/p&gt;
+&lt;p&gt;这样，我们就可以计算出$P(B|S)=0.41$。&lt;/p&gt;
+&lt;p&gt;得到这个结果的反思：单纯依靠先验概率得到答案0.15，单纯依靠目击证人得到0.8都不是最合理的结果，需要综合两者的信息来判断，当我们依靠贝叶斯公式计算得到后验概率是0.41之后，我们会更信服这样的概率结果。&lt;/p&gt;
+&lt;p&gt;在这个问题的讨论中，我和妻子产生了分歧，分歧点在于条件概率的计算是一个除法，除法的分子部分她选择了$P(B)$而不是$P(B)\times P(S|B)$，她认为分母部分已经把这个目击者看到的信息包含进去了，分子是这个城市蓝色汽车出现的概率。&lt;/p&gt;
+&lt;p&gt;我的想法是$P(B)$和$P(G)$在这个问题中只是假设(Hypothesis)，这个问题的核心仍然是那个目击者，目击者说他看到蓝车是一个证据(evidence)，他看到蓝车并且假设是蓝车概率是$P(S,B)$，但是也有可能是绿车他说成蓝车，他看到蓝车但是假设是绿车概率是$P(S,G)$， 那么他看到蓝车并且假设也是蓝车的概率是$\frac{P(S,B)}{P(S,B)+P(S,G)}=0.41$ ，也就是这个问题的答案。全程考虑问题的重点是他提出他看到蓝车这个证据的事件需要在所有可能的假设上面做两个事件同时发生的概率求解，然后看看证据所描述的假设占据所有假设上的比率。隐藏的统计学基础比率（Statistical Base Rates）起到的作用就是计算提出证据这个事件和假设真的发生的概率。&lt;/p&gt;
+&lt;p&gt;像是线性代数当中的基向量，我们在讨论问题的时候，并不会过度关心那些个基向量，我们关心的是基向量的线性组合，或者说是坐标，例如，飞机在飞行中的位置就是一个大地坐标系统下的向量，在飞机着陆过程中，地面控制系统关心的是飞机的z坐标（代表了当前的高度），如果高度不对会发生坠机事件，和x、y方向的联合速度，代表了水平飞行的朝向，如果朝向不对无法降落到飞机场。这些变量是飞机位置这个总体变量在某些方向上的投影。从概率的角度看，就是证据的提出向基础事件们投影，得到的投影作为新的样本，从样本中选择我们关心的子样本。&lt;/p&gt;
+&lt;p&gt;从独立做100次实验的角度来看，让目击者独立重复看100次现场，实验设计85次是绿色出租车，15次是蓝色出租车，他看到蓝色出租车并且汇报是蓝车有12次，他看到绿色出租车并且汇报是蓝色出租车有17次，他总共汇报了29次是蓝车，但是这29次当中真正是蓝车只有12次，那么最终的概率就是12/29。&lt;/p&gt;
+&lt;p&gt;作者在这一章节最想强调的事情是：在特殊场景发生的事情，即使是你亲眼看到的，也并不能把这个事件发生的概率提高到1，人们很容易忽略统计学的基础比例，但是如果统计学的基础比例换汤不换药地被描述为因果关系当中的原因，比如还是那个出租车肇事逃逸的问题，**描述为两家公司拥有相同数量的出租车，但是在造成事故的出租车当中，绿色出租车占比为85%。**那么，人们就更容易地接受这样的事实，就会觉得是绿色出租车的可能性变大，降低是蓝色出租车肇事的预期。从而改变了对这个事件的看法。但是从数学的角度，这两种描述都是贝叶斯公式当中的计算素材。作者提到的两个重要的概念分别是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;统计学基础比率（Statistical Base Rates）：在一个特定的群体当中，某个特定的属性的比例，例如，某个城市的出租车当中，蓝色出租车的比例是15%，绿色出租车的比例是85%。普遍受到轻视，当人们手头有和该事件相关的具体信息时，有时候还会完全忘记或者忽略这个比率。&lt;/p&gt;
+&lt;p&gt;因果关系基础比率（Causal Base Rates）：在一个特定的群体当中，某个特定的属性的比例，例如，某个城市的出租车当中，蓝色出租车肇事的比例是15%，绿色出租车肇事的比例是85%。因果关系往往被看作是个别事件的信息，人们很容易把这个信息和其他的具体事件结合起来考虑问题。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;文章讲到的思维定式，对于大脑中的系统1来说，它的特征之一就是代表了范畴规范和原型范例，这样的规范和范例决定了我们如何看待身边的事物，比如电冰箱，电动车和交通警察，在我们的记忆当中会存储所有这些范畴的事物或者个人相关的一个或者多个“规范的”典型形象，当这些规范具有了社会性的时候，这些典型形象就被称为思维定式。注意，这里是范式的式。&lt;/p&gt;
+&lt;p&gt;我们应该如何做？&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;我认为，在需要做出判断的时候，尽量能够把和当前所遇到的问题相关的名词列举出来，然后把他们做一些组合形成一些描述，然后再思考这些描述是否有普遍的统计学规律，如果有，把这些规律转化为因果关系的基础比率，帮助我们分析当前的这个具体问题。&lt;/li&gt;
+&lt;li&gt;任何我们看到听到的事情，都是值得怀疑的，因为从数学的角度来看，这件事情发生都是概率性的，我们看到听到感受到的，只是该事件的某种观测，只要是观测，就会存在偏差，就会不准，即使我们主观感受觉得自己判断得很准。&lt;/li&gt;
+&lt;li&gt;不能忽略基础比率，但是更不能忽略观测。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;第17章-所有表现都会回归平均值&#34;&gt;第17章 所有表现都会回归平均值&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;成功=天赋+运气&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;从飞行员特技表演到高尔夫球手前后两天的比赛水平，都说明了，如果某一次表现优秀，并不能下定论这个选手一直会如此的优秀，反而，他的表现会回归平均值，但是如果某个选手的表现一直显著超过平均值，那么，说明他是一位优秀的选手。
+回归效应是普遍存在的现象，上过《体育画报》封面的运动员都会在之后的比赛中表现欠佳。&lt;/p&gt;
+&lt;p&gt;作者强调了相关性和因果性是不同的概念：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;相关系数：两个值共有因素的相对比重，在0到1之间浮动。我理解的是，两个值是随机变量，有联合概率分布函数和联合概率密度函数，也有某个变量的边缘概率分布和边缘密度函数。查阅卯诗松概率统计的书籍，描述两个变量之间的统计关系可以采用协方差或者相关系数，但是因为协方差是带有量纲的，就是某种单位，无法归一化，所以有了相关系数这个无量纲的系数。
+$X$和$Y$两个随机变量的协方差，或者叫做相关矩（中心矩）
+$$
+COV(X,Y)=E(X-E(X))E(Y-E(Y))
+$$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当$COV(X,Y)&amp;gt;0$时候，说明两个随机变量是正相关的，当$COV(X,Y)&amp;lt;0$时候，说明两个随机变量是负相关的，当$COV(X,Y)=0$时候，说明两个随机变量是不相关的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;两个随机变量不相关不代表相互独立。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img alt=&#34;随机变量独立性的定义&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/def_independency.png&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;相关系数的计算公式。
+&lt;img alt=&#34;两个随机变量的相关系数&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/def_correlation.png&#34;&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;变量之间的回归关系 &amp;ndash; 英国生物学家兼统计学家高尔顿
+&lt;img alt=&#34;回归分析的意义&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/regression_analysis.png&#34;&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;自变量$x$的取值是如何影响因变量$y$期望值的，该模型并不会给出$y$的具体取值，只是表明了$y$的平均水平会随$x$发生什么样的变化。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;一元线性回归模型&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/linear_regression.png&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如何在实践中利用这个效应？&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在做预测分析的时候，可以根据历史数据得到回归分析的结果，然后，根据个例的最近情况，比如最近三年的走势，结合回归分析结果进行加权平均，得到的加权平均更具有说服力。作者举例的连锁百货公司的下一年的门店销售额增长情况，需要在平均增长情况的基础上，对业绩较差的门店赋予大于10%的增长率，对于业绩较好的门店赋予小于10%的增长率。
+个人认为，这只是一种思维方式，需要我们使用更精确的数学模型来刻画这种变化情况。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>卡尔曼滤波器学习笔记（二）：随机过程和线性卡尔曼滤波器</title>
+      <link>http://localhost:1313/posts/2023-12-08-kalman-filter-theory-2/</link>
+      <pubDate>Fri, 08 Dec 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2023-12-08-kalman-filter-theory-2/</guid>
+      <description>&lt;h2 id=&#34;随机过程的模型建立&#34;&gt;随机过程的模型建立&lt;/h2&gt;
+&lt;p&gt;一般地，我们研究的随机过程是一个动态的系统(Dynamical Systems).&lt;/p&gt;
+&lt;p&gt;$$
+\frac{d\boldsymbol{x(t)}}{dt}=f(\boldsymbol{x}(t),t,\beta)
+$$&lt;/p&gt;
+&lt;p&gt;其中，$\beta$是系统中设置的参数，$x(t)$是状态向量，加入时间$t$作为参数代表状态向量的取值随时间变化。&lt;/p&gt;
+&lt;p&gt;为了简化我们对系统的建模，首先把时间和系统参数对系统迭代的影响忽略掉，简化上面的等式：&lt;/p&gt;
+&lt;p&gt;$$
+\frac{d\boldsymbol{x}(t)}{dt}=f(\boldsymbol{x}(t))
+\label{eq1}\tag{1}
+$$&lt;/p&gt;
+&lt;p&gt;($\ref{eq1}$)是连续系统的描述，更常见的是离散系统，我们把时间离散化，得到：&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{x}_{k+1}=F(\boldsymbol{x}_k)
+\label{eq2}\tag{2}
+$$&lt;/p&gt;
+&lt;p&gt;上面的等式仍然不是很理想，因为经常性的，$F$是一个非线性的函数，对计算机来说，很难迭代地处理这样的函数，而且我们也很难给出$F$准确的函数表达式。&lt;/p&gt;
+&lt;p&gt;那么，需要对($\ref{eq2}$)进行改写，在改写的过程中，考虑控制量的引入$\boldsymbol{u}$,如果系统建模方程中有高阶的导数，可以通过定义新的高阶导数作为变量组成维数更多的状态向量来降低阶数，最终得到个一阶的微分方程。这里具体怎么做就不展开了，并不属于这篇文章的重点内容，我们先直接使用结论。&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{\dot x}=A\boldsymbol{x}+B\boldsymbol{u}+\boldsymbol{w}
+\label{eq3}\tag{3}
+$$&lt;/p&gt;
+&lt;p&gt;($\ref{eq3}$)描述的是系统在当前状态下，下一时刻会如何改变，是一个一阶的微分方程组（因为状态向量是多维度的），但是这样的方程组也不是我们想要的，我们期望是可以根据前一时刻的状态直接线性运算得到后一时刻的预测状态。&lt;/p&gt;
+&lt;h2 id=&#34;状态转移方程&#34;&gt;状态转移方程&lt;/h2&gt;
+&lt;p&gt;($\ref{eq3}$) 描述的是下一时刻系统状态的增长或者是变化和当前的状态有什么关系，假如没有加入人为的控制，比如，让一个倒立摆自由运动，不提供平衡的直线运动单元，那么这个系统的一些特性，比如可控性，稳定性都可以通过研究$A$的特征值和特征向量来快速得到。
+加入人为的控制量$\boldsymbol{u}$可以改变系统的特性，按照我们的期望来改造，Brunton老师说得是manipulate。在动态系统的控制领域，对矩阵$A$的研究会更多，$A$的学术用语为动态系统矩阵（System Dynamics Matrix），在状态估计领域，我们对状态转移方程更关心。实际系统经常是非线性的，但是在局部我们可以线性化。目前，从一阶微分方程组如何推导出状态转移方程是本次不讨论的内容，但是是有若干种技术去实现。&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{x}_{k+1}=F\boldsymbol{x}_k+B\boldsymbol{u}_k + \boldsymbol{w}_k
+\label{eq4}\tag{4}
+$$&lt;/p&gt;
+&lt;p&gt;($\ref{eq4}$)中的$F$叫做状态转移矩阵（State Transition Matrix）。&lt;/p&gt;
+&lt;p&gt;非线性的系统状态转移矩阵是根据系统的雅可比矩阵来确定的，每次迭代都会变。后续需要确认是不是这样。&lt;/p&gt;
+&lt;p&gt;到目前为止，根据系统的物理定律我们在没有测量的状态下得到系统状态是如何迭代的，但是需要注意($\ref{eq4}$)中的$\boldsymbol{w}_k$：系统噪声。随着时间迭代，我们仅仅使用状态转移方程估计系统状态会越来越不准，因为描述状态的协方差矩阵$Q$会变大。&lt;/p&gt;
+&lt;h2 id=&#34;随机过程的贝叶斯后验概率分布推导&#34;&gt;随机过程的贝叶斯后验概率分布推导&lt;/h2&gt;
+&lt;p&gt;根据第一讲贝叶斯滤波的基本思路，系统迭代的过程中，需要有测量数据做融合，从概率论角度讲就是测量数据$\boldsymbol{Y}$作为随机变量，根据传感器的特性，它的似然概率分布是已知的：$P(Y&amp;lt;y|X)$，那么在预测步骤之后，有状态向量的先验分布$P(X&amp;lt;x)$，那么我们的目标是得到基于两者的后验分布。&lt;/p&gt;
+&lt;p&gt;在推导之前，需要非常明确这几条：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;状态向量迭代的过程虽然是离散的，例如$T_1$, $T_2$时刻的状态，但是在某一时刻的取值仍然是连续的随机变量，我们在第一篇里面得到的结论仍然适用于某一时刻的情况。&lt;/li&gt;
+&lt;li&gt;在不同的时刻下，先验、后验分布都在变化，先验分布变化是因为系统因为物理、化学等规律随之前的状态产生了新的变化 &amp;ndash; 就是由状态转移方程描述的。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;后面的公式当中，$f_0(X)$表示在$T=T_0$时刻也就初始时刻的概率密度函数，$P(X_1&amp;lt;x)$是第一次迭代之后的先验概率分布函数，$P(X_1&amp;lt;x|Y_1=y)$是融合了似然概率之后的后验概率分布函数。&lt;/p&gt;
+&lt;h2 id=&#34;状态转移的概率分布推导&#34;&gt;状态转移的概率分布推导&lt;/h2&gt;
+&lt;p&gt;第一个需要推导的是如何根据$P(X_0&amp;lt;x)$和($\ref{eq4}$)推导$P(X_1&amp;lt;x)$
+重写($\ref{eq4}$):&lt;/p&gt;
+&lt;p&gt;$$
+X_{k+1}=FX_k+Bu_k+W_k
+\label{eq5}\tag{5}
+$$&lt;/p&gt;
+&lt;p&gt;($\ref{eq5}$)可以理解成对随机变量进行逻辑运算，后面会使用到。&lt;/p&gt;
+&lt;p&gt;对$P(X_1&amp;lt;x)$进行全概率公式展开：&lt;/p&gt;
+&lt;p&gt;$$
+P(X_1&amp;lt;x)=\lim_{\epsilon \to 0} \Sigma_{a=-\infty}^{a=x} P(a&amp;lt;X_1&amp;lt;a+\epsilon)
+\label{eq6}\tag{6}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\lim_{\epsilon \to 0}P(a&amp;lt;X_1&amp;lt;a+\epsilon)=\lim_{\epsilon \to 0}\int_{v=-\infty}^{v=\infty} P(a&amp;lt;X_1&amp;lt;a+\epsilon|X_0=v)f_{X_0}(v)dv
+\label{eq7}\tag{7}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波</title>
+      <link>http://localhost:1313/posts/2023-12-01-kalman-filter-theory-1/</link>
+      <pubDate>Fri, 01 Dec 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2023-12-01-kalman-filter-theory-1/</guid>
+      <description>&lt;h2 id=&#34;感谢&#34;&gt;感谢&lt;/h2&gt;
+&lt;p&gt;点一个大大的赞！
+&lt;a href=&#34;https://github.com/re-book/ptmst&#34;&gt;经典教材的重新排版&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;文章中深蓝色字体表示摘录自该教材。&lt;/p&gt;
+&lt;p&gt;给老王点赞！
+&lt;a href=&#34;https://github.com/VincentWong3&#34;&gt;老王&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;这个作者真心用心地交互式展示数学和工程实践。
+&lt;a href=&#34;https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python&#34;&gt;Kalman-and-Bayesian-Filters-in-Python&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;这篇容易让我们建立直觉的理解&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.3blue1brown.com/lessons/bayes-theorem&#34;&gt;3blue1brown-bayes-theorem&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;背景知识&#34;&gt;背景知识&lt;/h2&gt;
+&lt;p&gt;一本很有名的书，学习作者对内容的安排。
+&lt;img alt=&#34;概率机器人&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/probabilistic_robotics.png&#34;&gt;
+需要的预备知识：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;线性代数&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;概率，概率密度函数&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;离散变量贝叶斯滤波&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;连续变量贝叶斯滤波推导&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;学习心得&#34;&gt;学习心得&lt;/h2&gt;
+&lt;p&gt;首先是概念理解，需要把概念代表的物理意义搞清楚：事件≠随机变量，随机变量是对事件的数量化描述，事件是随机变量的取值，随机变量的取值可以是一个数，也可以是一个向量。概率密度函数是对随机变量的取值的概率分布的描述，概率密度函数的积分就是概率。概率密度函数的积分就是概率，概率密度函数的积分就是概率，概率密度函数的积分就是概率。重要的事情说三遍。&lt;/p&gt;
+&lt;p&gt;亲自手写公式推导一遍，在这个过程中会强烈加深对内部逻辑的理解，争取可以做到经过很长时间之后，你仍然可以随便拿一张纸开始从零推导&lt;/p&gt;
+&lt;p&gt;感觉基于贝叶斯的随机过程计算其实是在更新变量的概率分布，并不是直接计算最终你看到的数据，最后你得到的数据只是这个过程当中的附带产品。&lt;/p&gt;
+&lt;p&gt;上面这一条的感受里面说的计算过程，基础是全概率下的全部样本空间，像是在一个无限大的平面上（因为真实值的取值是无穷无尽的）时刻飘过一团云，这团云和云笼罩下的区域是本次计算的结果。&lt;/p&gt;
+&lt;h2 id=&#34;符号说明&#34;&gt;符号说明&lt;/h2&gt;
+&lt;p&gt;一般性地，我们用$\boldsymbol X$表示随机变量，用$\boldsymbol x$表示随机变量的某一个具体的取值。用$\boldsymbol{y}$表示测量值。$\boldsymbol{u}$表示系统的控制量。$\boldsymbol{w}$表示系统的过程噪声，$\boldsymbol{v}$表示测量噪声。黑体代表这些变量是向量。&lt;/p&gt;
+&lt;h2 id=&#34;概率论回顾&#34;&gt;概率论回顾&lt;/h2&gt;
+&lt;p&gt;随机变量$\boldsymbol X$(Random Variable)的物理意义是把随机事件数量化。随机变量分为离散随机变量和连续随机变量。离散随机变量的取值是有限的，连续随机变量的取值是无限的。随机变量的取值可以是一个数，也可以是一个向量。个人觉得随机变量只是对随机事件的定量描述，是更加具象化的表达方式。更加核心的还是随机事件，所以下面的描述都是基于事件来推导公式的，并没有带入随机变量的表达。&lt;/p&gt;
+&lt;p&gt;条件概率的定义：
+某事件B发生的条件下，事件A发生的概率，记为$P(A|B)$。
+工程上是把事件看作随机变量在某一时刻取某一个数值，所以，在实际计算时，计算的是条件概率密度函数，并不是单单一个条件概率。&lt;/p&gt;
+&lt;p&gt;乘法公式：
+$P(AB)=P(A)P(B|A)=P(B)P(A|B)$
+描述的是随着时间的推移，事件A和事件B同时发生的概率可以通过事件A发生的概率和基于A发生B发生的概率相乘得到。方便针对每一个概率进行单独的计算从而得到一个总的概率。&lt;/p&gt;
+&lt;p&gt;全概率公式：
+全概率公式是另一个很重要的公式，提供了计算复杂事件概率的一条有效的途径，使得一个复杂事件的概率可以通过简单的计算得到。&lt;/p&gt;
+&lt;p&gt;全概率公式：设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&amp;gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有
+$P(A)=\Sigma P(B_i)P(A|B_i)$&lt;/p&gt;
+&lt;p&gt;贝叶斯公式：
+这个公式得到的前提是乘法公式和全概率公式。
+设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&amp;gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有
+$P(B_i|A)=\frac{P(B_i)P(A|B_i)}{\Sigma_{j=1}^n P(B_j)P(A|B_j)}$&lt;/p&gt;
+&lt;p&gt;体会：虽然我没有查找&lt;a href=&#34;https://zh.wikipedia.org/zh-cn/%E6%89%98%E9%A9%AC%E6%96%AF%C2%B7%E8%B4%9D%E5%8F%B6%E6%96%AF&#34;&gt;托马斯·贝叶斯&lt;/a&gt;发现这个定理的过程是不是因为实际的应用问题，因为在状态估计这个领域，具有非常强的适配性，我们可以把样本空间理解成状态变量的空间，$B_i$理解成离散的单个样本，$A$理解成对样本空间的某次测量，$P(B_i)$理解成状态变量的先验概率，$P(A|B_i)$理解成测量值的似然概率 &amp;ndash; 就是假设真实值为$B_i$的条件下测量值为$A$的概率，$P(B_i|A)$理解成状态变量的后验概率（经过测量更新），这样就可以把贝叶斯公式应用到状态估计当中了。&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://en.wikipedia.org/wiki/Bayes%27_theorem&#34;&gt;维基百科&lt;/a&gt;里面说这个方程的分母是$P(B)$&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;贝叶斯公式解读&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Bayes_therom.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;然后我看到了它说$P(B)$是边缘分布，然后我点进去看啥是边缘分布：
+&lt;a href=&#34;https://en.wikipedia.org/wiki/Marginal_distribution&#34;&gt;边缘分布&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;在这里隐约感觉到：这里的论述和线性代数里面的空间向量怎么很类似？跟信号的傅里叶分解也很类似：全部都是把一个复杂的东西分解成一些简单的东西，然后再把这些简单的东西组合起来得到复杂的东西。这块简单的东西就是全样本空间下每一种样本的概率，类似于空间中的基向量，或者傅里叶变换中的基函数，然后这些基函数前面的系数就是权重或者是事件A和$B_i$重叠了多少程度，然后求和就得到了边缘概率。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;边缘分布&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/margin_distribution.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;最后再次用更好记忆的方式写一遍贝叶斯公式：&lt;/p&gt;
+&lt;p&gt;$$
+后验条件概率=\frac{先验概率*似然概率}{边缘概率}
+$$&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;条件概率是概率论中一个既重要又实用的概念&lt;/strong&gt;。 &amp;ndash; 1.4《概率论与数理统计》茆诗松&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;pdf: probability density function, 概率密度函数&lt;/li&gt;
+&lt;li&gt;cdf: cumulative distribution function, 累积分布函数&lt;/li&gt;
+&lt;li&gt;先验概率：就是人们根据自己系统的模型给出来的经验概率&lt;/li&gt;
+&lt;li&gt;后验概率：就是通过传感器本身的测量特性&amp;ndash;传感器测某个状态得到的结果这个变量的概率分布和先验的概率分布，得到的对系统的状态变量条件概率$P(X=x|Y=y)$&lt;/li&gt;
+&lt;li&gt;似然概率：是一个条件概率，意思是当真实值取值为$x$的时候，测量值取值为$y$的概率，$P(Y=y|X=x)$ (这里默认测量值测量到的就是真实值)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;我觉得还需要加一个边缘概率：边缘概率就是全概率公式对于某一个事件的应用，就是基于所有可能的状态量，测量得到$y$之后的条件概率和先验概率乘积再相加。展现形式是和全概率一样的，只不过这里具有了更多的实际意义。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>矩阵的奇异值分解</title>
+      <link>http://localhost:1313/posts/2020-02-03-linear-algebra-svd/</link>
+      <pubDate>Mon, 22 Jun 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-02-03-linear-algebra-svd/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;Besides having a rather simple geometric explanation, the singular value decomposition offers extremely effective techniques for putting linear algebraic ideas into practice.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;svd分解与四个子空间&#34;&gt;SVD分解与四个子空间&lt;/h2&gt;
+&lt;p&gt;任意的线性变换都可以进行奇异值分解(SVD: Singular Value Decomposition)。之前的一篇博客讲的特征值和特征向量都是针对方阵而言的.这里任意形状的矩阵都能够进行SVD变换。给定一个$m \times n$的矩阵$A$，$rank(A)=r$，这里需要特别说明，我们可以在这个矩阵的行空间和列空间内找到$r$个线性无关的基，即使行、列空间的维度有不同。此处是核心：我们能够参考方阵，对它的特征值特征向量的推导过程得到启发，结合这里矩阵不一定是方阵（行、列维度不同的特点），能否在行子空间内找到一组相互正交的单位基向量，这组基向量通过$A$的变换在列空间内“生产”出一组也是相互正交的向量，并且这组向量正好是列空间的一组基。&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+Av_1=\sigma_1u_1, \cdots, Av_r=\sigma_1u_r
+\end{equation}
+\label{eq1}\tag{1}
+$$&lt;/p&gt;
+&lt;p&gt;($\ref{eq1}$) 中，$v_i(i=0,1,\cdots,r)$是行空间内的单位向量，且$v_i^T \dot v_j=0 (i \neq j)$，$u_i(i=0,1,\cdots,r)$是列空间内的单位向量（Orthonormal basis），且$u_i^T \dot u_j=0 (i \neq j)$，$\sigma_i(i=0,1,\cdots,r)$是列空间内单位向量的伸缩系数。
+写成矩阵乘法的形式如下：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+A\left[ \boldsymbol{v_1}\ \boldsymbol{v_1}\cdots \boldsymbol{v_r} \right] =\left[ \boldsymbol{u_1}\ \boldsymbol{u_2}\cdots \boldsymbol{u_r} \right] \begin{bmatrix}\sigma_1&amp;amp;0&amp;amp;\cdots&amp;amp;0\\ 0&amp;amp;\sigma_2&amp;amp;\cdots&amp;amp;0\\ \vdots&amp;amp;\vdots&amp;amp;\vdots&amp;amp;\vdots\\ 0&amp;amp;\cdots&amp;amp;\cdots&amp;amp;\sigma_r\end{bmatrix}
+\end{equation}
+\label{eq2}\tag{2}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>相似矩阵和矩阵的特征值特征向量</title>
+      <link>http://localhost:1313/posts/2020-01-31-linear-algebra-similarmatrix-eigenvector-eigenvalue/</link>
+      <pubDate>Fri, 31 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-31-linear-algebra-similarmatrix-eigenvector-eigenvalue/</guid>
+      <description>&lt;h2 id=&#34;相似矩阵&#34;&gt;相似矩阵&lt;/h2&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;为什么会产生&lt;strong&gt;相似矩阵&lt;/strong&gt;这个感念？
+场景描述：假定在一个线性空间当中，存在两组不同的基向量。在空间当中任何一个向量在不同的基下，投影的长度、方向都有所不同。当我们对这个向量施加变换的时候，也就是左乘一个变换矩阵，在不同的基下，这个左乘的矩阵形式上面是不同的，但是，它们有一个共同特点，就是相似，因为描述了同一个变换。&lt;/p&gt;
+&lt;h2 id=&#34;正向推导&#34;&gt;正向推导&lt;/h2&gt;
+&lt;p&gt;按照我们刚才看到的这段话，我们可以用数学语言进行一次推导。&lt;/p&gt;
+&lt;h3 id=&#34;同一个向量不同基下的描述&#34;&gt;同一个向量不同基下的描述&lt;/h3&gt;
+&lt;p&gt;假设线性空间内基由$n$个向量组成，我们不妨选取其中两组基：$\begin{bmatrix}\boldsymbol{\alpha_1} &amp;amp; \boldsymbol{\alpha_2} \cdots \boldsymbol{\alpha_n}  \end{bmatrix}$$，$$\begin{bmatrix}\boldsymbol{\beta_1} &amp;amp; \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n}  \end{bmatrix}$。&lt;/p&gt;
+&lt;p&gt;在此空间内的任意向量$\boldsymbol{b}$:&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\boldsymbol{b} = \begin{bmatrix}\boldsymbol{\alpha_1} &amp;amp; \boldsymbol{\alpha_2} \cdots \boldsymbol{\alpha_n}  \end{bmatrix} \boldsymbol{x_1}  \tag{1}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+\boldsymbol{b} = \begin{bmatrix}\boldsymbol{\beta_1} &amp;amp; \boldsymbol{\beta_2} \cdots \boldsymbol{\beta_n}  \end{bmatrix}\boldsymbol{x_2} \tag{2}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;对于$\boldsymbol{b}$，有：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+[\boldsymbol{\alpha}]\boldsymbol{x_1}=[\boldsymbol{\beta}]\boldsymbol{x_2}
+\label{eq3}\tag{3}
+\end{equation}
+$$&lt;/p&gt;
+&lt;h3 id=&#34;一次线性变换&#34;&gt;一次线性变换&lt;/h3&gt;
+&lt;p&gt;对该向量做一次线性变换，分别得到在两组基下面的坐标向量：$\boldsymbol{y_1},\boldsymbol{y_2}$&lt;/p&gt;
+&lt;p&gt;那么，同一组基下，变换前后的两个向量具有如下的关系：&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+T_1 \boldsymbol{x_1}=\boldsymbol{y_1}
+\label{eq4}\tag{4}
+\end{equation}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\begin{equation}
+T_2 \boldsymbol{x_2}=\boldsymbol{y_2}
+\label{eq5}\tag{5}
+\end{equation}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>投影矩阵和最小二乘</title>
+      <link>http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/</link>
+      <pubDate>Thu, 30 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-30-linear-algebra-projectionmatrix-least-squares/</guid>
+      <description>&lt;h2 id=&#34;投影矩阵&#34;&gt;投影矩阵&lt;/h2&gt;
+&lt;p&gt;之前的一篇&lt;a href=&#34;https://warden2018.github.io/2020/01/29/2020-01-29-Linear-Algebra-4Subspaces-Matrix/&#34;&gt;博客&lt;/a&gt;讲到了矩阵的四个子空间：行空间，列空间，零空间和左零空间。每一个空间唯一性地由这个矩阵决定，因为这个矩阵的列可能线性无关，可能线性相关，如果线性相关，能够在其中找到多少个线性无关的向量。所以，不同的矩阵所形成的对应的四个子空间情况各不相同。我们为了能够理解给定的矩阵四个空间分布情况，就引入了投影矩阵的概念，用来分析在空间中任意向量到这个矩阵的“距离”。下面我们具体看一下：
+首先回顾一下矩阵的列空间$C (A)$和对应的左零空间$N(A^T)$，它们所具有的最优秀的属性就是&lt;strong&gt;垂直&lt;/strong&gt;。
+矩阵$A$的投影矩阵$P$&lt;/p&gt;
+&lt;p&gt;$$
+P=A(A^TA)^{-1}A^T
+$$&lt;/p&gt;
+&lt;p&gt;给定任意一个与$A$列相同维度的向量 $ \boldsymbol b$，它与这个矩阵列空间的关系是什么？我们怎么能够几何直观地理解一下？&lt;/p&gt;
+&lt;p&gt;$$
+A=\begin{bmatrix}
+1&amp;amp;4\\
+2&amp;amp;5\\
+3&amp;amp;6
+\end{bmatrix}
+$$&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;两个列向量$\boldsymbol u=\begin{bmatrix}1\\ 2\\ 3\end{bmatrix},\boldsymbol v=\begin{bmatrix}4\\ 5\\ 6\end{bmatrix}$构成列空间（一个平面）。
+&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix2.png&#34;&gt;
+$\boldsymbol {per}=\begin{bmatrix}1\\ -2\\ 1\end{bmatrix}$是左零空间的一个向量。$\boldsymbol b$是三维空间内的任意向量，我们举出的是一般性的例子，即这个向量不在这两个子空间的任何一个空间内。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果在列空间，那么投影的作用是保留全部&amp;ndash;即该向量保持不变&lt;/li&gt;
+&lt;li&gt;如果在左零空间，那么投影的结果是0&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/projectionMatrix3.png&#34;&gt;
+那么，投影矩阵对该任意向量的作用就是将这个向量对列空间投影，得到$\boldsymbol{projection}$向量，称为投影向量，再求一次向量减法运算，得到$\boldsymbol{e}$，误差向量，代表了这个任意给定向量和列空间的差别。&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{projection} + \boldsymbol{e}=\boldsymbol{b}
+$$&lt;/p&gt;
+&lt;h2 id=&#34;投影矩阵的性质&#34;&gt;投影矩阵的性质&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;幂等性（idempotent）：$P=P^2$。这也是投影矩阵的定义。由上面的描述我们可以得到任意向量做一次投影之后的结果已经在原矩阵的列空间内，继续做投影依旧保持第一次的投影不变。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;最小二乘&#34;&gt;最小二乘&lt;/h2&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;已知空间当中的一些点，如何找到一条直线，能够尽可能地离所有点最近？&lt;/p&gt;
+&lt;h2 id=&#34;问题梳理&#34;&gt;问题梳理&lt;/h2&gt;
+&lt;p&gt;&lt;img alt=&#34;列向量子空间&#34; loading=&#34;lazy&#34; src=&#34;https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Least_Square.png&#34;&gt;
+假设二维空间有$n$个点，我们定义点$x=\begin{bmatrix}x_i\ y_i \end{bmatrix}$到直线$y=ax+b$的偏差为$e=ax_i+b-y_i$，最小化这些偏差的平方&lt;/p&gt;
+&lt;p&gt;$$
+S=\sqrt{\sum_{i=0}^n {(e_i)^2}}
+$$&lt;/p&gt;
+&lt;p&gt;为了最小化这个式子，根据式子的特点，我们可以将问题转化成为通过寻找向量的模长的最小值解决。这个向量是：&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol {e}=\begin{bmatrix} e_1&amp;amp; e_e  \cdots &amp;amp; e_n     \end{bmatrix}^T
+$$&lt;/p&gt;
+&lt;p&gt;$$
+\boldsymbol{e}=
+\begin{bmatrix} e_1\\  \vdots \\ e_n    \end{bmatrix}=
+\begin{bmatrix} y_1-b-ax_1\\  \vdots \\ y_n-b-ax_n    \end{bmatrix}=
+\begin{bmatrix} y_1\\  \vdots \\ y_n&lt;br&gt;
+\end{bmatrix}-a\begin{bmatrix} x_1\\  \vdots \\  x_n   \end{bmatrix}-
+b\begin{bmatrix} 1\\  \vdots \\ 1   \end{bmatrix}=
+\begin{bmatrix} y_1\\  \vdots \\ y_n   \end{bmatrix}-
+\begin{bmatrix} 1&amp;amp;x_1\\  \vdots &amp;amp;\vdots \\ 1 &amp;amp;x_n  \end{bmatrix}\begin{bmatrix}b\\ a\end{bmatrix}=\boldsymbol{y}-M\boldsymbol{x}
+$$&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>矩阵的四个子空间</title>
+      <link>http://localhost:1313/posts/2020-01-29-linear-algebra-4subspaces-matrix/</link>
+      <pubDate>Wed, 29 Jan 2020 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2020-01-29-linear-algebra-4subspaces-matrix/</guid>
+      <description>&lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;线性代数，同微积分一样，是高等数学中两大入门课程之一，它除了是一门数学课程，也是非常好的工具类学科，在很多的领域都有涉及，比如在人工智能领域，机器学习和数值优化。它的研究对象是&lt;strong&gt;向量&lt;/strong&gt;，&lt;strong&gt;向量空间&lt;/strong&gt;（或称线性空间），&lt;strong&gt;线性变换&lt;/strong&gt;和&lt;strong&gt;有限维的线性方程组&lt;/strong&gt;。从线性空间的角度作为切入点，我们能够更好地理解向量，矩阵以及矩阵的特征值、特征向量、相似矩阵、正定矩阵、奇异值分解等等。在这里，我强烈推荐MIT教授William Gilbert Strang的MIT 18.06 Linear Algebra课程，视频能够在youtube或者是网易公开课上找到。他讲解线性代数的思路很容易理解，更重要的是他从空间的角度出发，很自然轻松地解释所有的内容。在他的课程当中，给我印象最深的就是矩阵的四个子空间部分。下面我们逐步深入下去，从空间的概念讲起，逐步到达线性代数最核心的概念：矩阵的四个子空间。&lt;/p&gt;
+&lt;h2 id=&#34;空间&#34;&gt;空间&lt;/h2&gt;
+&lt;p&gt;提到空间，我们首先想到的就是我们生活在三维环境，站在数学的角度上看，这是一个三维的欧几里得空间。经过数学家们的不断思考，他们用最凝练的语言描述空间的共同特点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;由无穷多的点组成；&lt;/li&gt;
+&lt;li&gt;不同点之间存在着可以描述的相对关系；&lt;/li&gt;
+&lt;li&gt;在空间中通过点定义长度、角度；&lt;/li&gt;
+&lt;li&gt;容纳运动，或者更宽泛来讲就是容纳变换。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;上面的这些性质中，最最关键的是第4条。第1、2条只能说是空间的基础，不算是空间特有的性质，凡是讨论数学问题，都得有一个集合，大多数还得在这个集合上定义一些结构（关系），并不是说有了这些就算是空间。而第3条太特殊，其他的空间不需要具备，更不是关键的性质。只有第4条是空间的本质，也就是说，容纳运动是空间的本质特征。 有句话叫做：“静止是相对的，运动才是绝对的。”我们思考的起点，必须要做到“运动”，即变换是运动，状态其实也是运动，只不过这个特殊的运动是从我们很难发觉的特殊起点开始的。这点我们将在后面讲到。&lt;/p&gt;
+&lt;h2 id=&#34;线性空间&#34;&gt;线性空间&lt;/h2&gt;
+&lt;p&gt;线性空间（Vector Space or Linear Space）的定义源于许多数学对象本身如何归类，例如几何向量、同型矩阵、实函数等等，它们满足相同的计算规则，都能够相加以及用数相乘，将它们称为&lt;strong&gt;向量&lt;/strong&gt;。向量的一个集合$V$，如果对于$V$中的任意向量$u$,$v$和一个数集$F$内的数$a$,$b$，满足：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;加法封闭性：$(u+v)\in V$&lt;/li&gt;
+&lt;li&gt;数乘封闭性：$au \in V$,$(au+bv)\in V$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;那么，这个空间就是一个线性空间。&lt;/p&gt;
+&lt;p&gt;线性空间中的对象如何表达？&lt;/p&gt;
+&lt;p&gt;我的理解：两个关键点：一个是一组合适的基，另一个是这些基的有序求和（坐标）。
+$$
+\begin{bmatrix}	  &lt;br&gt;
+&amp;amp; a_{0,0} &amp;amp; a_{0,1} &amp;amp; a_{0, 2 }&amp;amp; \cdots &amp;amp; a_{0, n -1} \\
+&amp;amp; a_{1, 0 } &amp;amp; a_{1, 1} &amp;amp; a_{1 ,2 }&amp;amp; \cdots &amp;amp; a_{1 ,n -1}\\
+&amp;amp; \vdots  &amp;amp; \vdots&amp;amp; \vdots &amp;amp; \ddots &amp;amp; \vdots \\ &lt;br&gt;
+&amp;amp; a_{n-1 ,0 }&amp;amp; a_{n-1 ,1} &amp;amp; a_{n-1, 2 }&amp;amp; \cdots &amp;amp; a_{n-1, n -1} \\
+\end{bmatrix}
+\begin{bmatrix}
+&amp;amp; k_0 \\
+&amp;amp; k_1  \\
+&amp;amp; \vdots \\
+&amp;amp; k_{n-1}
+\end{bmatrix}
+=k_0
+\begin{bmatrix}
+a_{0,0}\\
+a_{1,0} \\
+\vdots  \\
+a_{n-1,0}
+\end{bmatrix}
++k_1
+\begin{bmatrix}
+a_{0,1}\\
+a_{1,1} \\
+\vdots \\
+a_{n-1,1}
+\end{bmatrix}
++\cdots+k_{n-1}
+\begin{bmatrix}
+a_{0,n-1}\\
+a_{1,n-1} \\
+\vdots  \\
+a_{n-1,n-1}
+\end{bmatrix}
+$$&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

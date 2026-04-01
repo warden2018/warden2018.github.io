@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>标定 on Yang&#39;s Blog</title>
+    <link>http://localhost:1313/tags/%E6%A0%87%E5%AE%9A/</link>
+    <description>Recent content in 标定 on Yang&#39;s Blog</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 02 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/%E6%A0%87%E5%AE%9A/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>手眼标定</title>
+      <link>http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/</link>
+      <pubDate>Tue, 02 Dec 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/</guid>
+      <description>&lt;p&gt;本文参考了&lt;a href=&#34;https://www.torsteinmyhre.name/snippets/robcam_calibration.html&#34;&gt;OPENCV&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。&lt;/p&gt;
+&lt;p&gt;&lt;img loading=&#34;lazy&#34; src=&#34;https:/https://images-1302340771.cos.ap-beijing.myqcloud.com/images-1302340771.cos.ap-beijing.myqcloud.com/extrinsic-camera-calibration-stationary-camera.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;利用李代数和最小二乘解决$AX=XB$的问题。&lt;/p&gt;
+&lt;h2 id=&#34;平移旋转分开求解&#34;&gt;平移旋转分开求解&lt;/h2&gt;
+&lt;h2 id=&#34;从齐次等式提取旋转部分&#34;&gt;从齐次等式提取旋转部分&lt;/h2&gt;
+&lt;p&gt;$$
+\begin{bmatrix}
+R_A &amp;amp; b_A \
+0 &amp;amp; 1
+\end{bmatrix}
+\begin{bmatrix}
+R_X &amp;amp; b_X \
+0 &amp;amp; 1
+\end{bmatrix}=
+\begin{bmatrix}
+R_X &amp;amp; b_X \
+0 &amp;amp; 1
+\end{bmatrix}\begin{bmatrix}
+R_B &amp;amp; b_B \
+0 &amp;amp; 1
+\end{bmatrix}
+$$&lt;/p&gt;
+&lt;p&gt;$$
+R_AR_X=R_XR_B
+$$&lt;/p&gt;
+&lt;h2 id=&#34;李代数和李群之间的相互映射&#34;&gt;李代数和李群之间的相互映射&lt;/h2&gt;
+&lt;p&gt;在SO(3)上，旋转矩阵$R$的李代数$\phi$ $\boldsymbol u\in so(3)$是一个三维向量($\boldsymbol u$是一个单位向量，$\phi\in \mathbb R$)。$\boldsymbol u^{\wedge}$是一个反对称矩阵。&lt;/p&gt;
+&lt;h3 id=&#34;so3李代数到so3的指数映射罗德里格斯公式&#34;&gt;so(3)李代数到SO(3)的指数映射&amp;ndash;罗德里格斯公式&lt;/h3&gt;
+&lt;p&gt;$$
+R=e^{\phi \boldsymbol u^{\wedge}}=\cos\phi I + (1-\cos \phi) \boldsymbol u\boldsymbol u^T + \sin \phi \boldsymbol u^{\wedge}
+$$&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波 | Yang&#39;s Blog</title>
+<meta name="keywords" content="Kalman Filtering">
+<meta name="description" content="感谢
+点一个大大的赞！
+经典教材的重新排版
+文章中深蓝色字体表示摘录自该教材。
+给老王点赞！
+老王
+这个作者真心用心地交互式展示数学和工程实践。
+Kalman-and-Bayesian-Filters-in-Python
+这篇容易让我们建立直觉的理解
+3blue1brown-bayes-theorem
+背景知识
+一本很有名的书，学习作者对内容的安排。
+
+需要的预备知识：
+
+
+线性代数
+
+
+概率，概率密度函数
+
+
+离散变量贝叶斯滤波
+
+
+连续变量贝叶斯滤波推导
+
+
+学习心得
+首先是概念理解，需要把概念代表的物理意义搞清楚：事件≠随机变量，随机变量是对事件的数量化描述，事件是随机变量的取值，随机变量的取值可以是一个数，也可以是一个向量。概率密度函数是对随机变量的取值的概率分布的描述，概率密度函数的积分就是概率。概率密度函数的积分就是概率，概率密度函数的积分就是概率，概率密度函数的积分就是概率。重要的事情说三遍。
+亲自手写公式推导一遍，在这个过程中会强烈加深对内部逻辑的理解，争取可以做到经过很长时间之后，你仍然可以随便拿一张纸开始从零推导
+感觉基于贝叶斯的随机过程计算其实是在更新变量的概率分布，并不是直接计算最终你看到的数据，最后你得到的数据只是这个过程当中的附带产品。
+上面这一条的感受里面说的计算过程，基础是全概率下的全部样本空间，像是在一个无限大的平面上（因为真实值的取值是无穷无尽的）时刻飘过一团云，这团云和云笼罩下的区域是本次计算的结果。
+符号说明
+一般性地，我们用$\boldsymbol X$表示随机变量，用$\boldsymbol x$表示随机变量的某一个具体的取值。用$\boldsymbol{y}$表示测量值。$\boldsymbol{u}$表示系统的控制量。$\boldsymbol{w}$表示系统的过程噪声，$\boldsymbol{v}$表示测量噪声。黑体代表这些变量是向量。
+概率论回顾
+随机变量$\boldsymbol X$(Random Variable)的物理意义是把随机事件数量化。随机变量分为离散随机变量和连续随机变量。离散随机变量的取值是有限的，连续随机变量的取值是无限的。随机变量的取值可以是一个数，也可以是一个向量。个人觉得随机变量只是对随机事件的定量描述，是更加具象化的表达方式。更加核心的还是随机事件，所以下面的描述都是基于事件来推导公式的，并没有带入随机变量的表达。
+条件概率的定义：
+某事件B发生的条件下，事件A发生的概率，记为$P(A|B)$。
+工程上是把事件看作随机变量在某一时刻取某一个数值，所以，在实际计算时，计算的是条件概率密度函数，并不是单单一个条件概率。
+乘法公式：
+$P(AB)=P(A)P(B|A)=P(B)P(A|B)$
+描述的是随着时间的推移，事件A和事件B同时发生的概率可以通过事件A发生的概率和基于A发生B发生的概率相乘得到。方便针对每一个概率进行单独的计算从而得到一个总的概率。
+全概率公式：
+全概率公式是另一个很重要的公式，提供了计算复杂事件概率的一条有效的途径，使得一个复杂事件的概率可以通过简单的计算得到。
+全概率公式：设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有
+$P(A)=\Sigma P(B_i)P(A|B_i)$
+贝叶斯公式：
+这个公式得到的前提是乘法公式和全概率公式。
+设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有
+$P(B_i|A)=\frac{P(B_i)P(A|B_i)}{\Sigma_{j=1}^n P(B_j)P(A|B_j)}$
+体会：虽然我没有查找托马斯·贝叶斯发现这个定理的过程是不是因为实际的应用问题，因为在状态估计这个领域，具有非常强的适配性，我们可以把样本空间理解成状态变量的空间，$B_i$理解成离散的单个样本，$A$理解成对样本空间的某次测量，$P(B_i)$理解成状态变量的先验概率，$P(A|B_i)$理解成测量值的似然概率 &ndash; 就是假设真实值为$B_i$的条件下测量值为$A$的概率，$P(B_i|A)$理解成状态变量的后验概率（经过测量更新），这样就可以把贝叶斯公式应用到状态估计当中了。
+维基百科里面说这个方程的分母是$P(B)$
+
+然后我看到了它说$P(B)$是边缘分布，然后我点进去看啥是边缘分布：
+边缘分布
+在这里隐约感觉到：这里的论述和线性代数里面的空间向量怎么很类似？跟信号的傅里叶分解也很类似：全部都是把一个复杂的东西分解成一些简单的东西，然后再把这些简单的东西组合起来得到复杂的东西。这块简单的东西就是全样本空间下每一种样本的概率，类似于空间中的基向量，或者傅里叶变换中的基函数，然后这些基函数前面的系数就是权重或者是事件A和$B_i$重叠了多少程度，然后求和就得到了边缘概率。
+
+最后再次用更好记忆的方式写一遍贝叶斯公式：
+$$
+后验条件概率=\frac{先验概率*似然概率}{边缘概率}
+$$
+条件概率是概率论中一个既重要又实用的概念。 &ndash; 1.4《概率论与数理统计》茆诗松
+
+pdf: probability density function, 概率密度函数
+cdf: cumulative distribution function, 累积分布函数
+先验概率：就是人们根据自己系统的模型给出来的经验概率
+后验概率：就是通过传感器本身的测量特性&ndash;传感器测某个状态得到的结果这个变量的概率分布和先验的概率分布，得到的对系统的状态变量条件概率$P(X=x|Y=y)$
+似然概率：是一个条件概率，意思是当真实值取值为$x$的时候，测量值取值为$y$的概率，$P(Y=y|X=x)$ (这里默认测量值测量到的就是真实值)
+
+我觉得还需要加一个边缘概率：边缘概率就是全概率公式对于某一个事件的应用，就是基于所有可能的状态量，测量得到$y$之后的条件概率和先验概率乘积再相加。展现形式是和全概率一样的，只不过这里具有了更多的实际意义。">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2023-12-01-kalman-filter-theory-1/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2023-12-01-kalman-filter-theory-1/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波
+    </h1>
+    <div class="post-meta"><span title='2023-12-01 00:00:00 +0000 UTC'>2023年12月1日</span>&nbsp;·&nbsp;<span>49 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2023-12-01-Kalman-Filter-Theory-1.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#感谢">感谢</a></li>
+    <li><a href="#背景知识">背景知识</a></li>
+    <li><a href="#学习心得">学习心得</a></li>
+    <li><a href="#符号说明">符号说明</a></li>
+    <li><a href="#概率论回顾">概率论回顾</a></li>
+    <li><a href="#桥梁">桥梁</a></li>
+    <li><a href="#连续随机变量">连续随机变量</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考">参考</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="感谢">感谢<a hidden class="anchor" aria-hidden="true" href="#感谢">#</a></h2>
+<p>点一个大大的赞！
+<a href="https://github.com/re-book/ptmst">经典教材的重新排版</a></p>
+<p>文章中深蓝色字体表示摘录自该教材。</p>
+<p>给老王点赞！
+<a href="https://github.com/VincentWong3">老王</a></p>
+<p>这个作者真心用心地交互式展示数学和工程实践。
+<a href="https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python">Kalman-and-Bayesian-Filters-in-Python</a></p>
+<p>这篇容易让我们建立直觉的理解</p>
+<p><a href="https://www.3blue1brown.com/lessons/bayes-theorem">3blue1brown-bayes-theorem</a></p>
+<h2 id="背景知识">背景知识<a hidden class="anchor" aria-hidden="true" href="#背景知识">#</a></h2>
+<p>一本很有名的书，学习作者对内容的安排。
+<img alt="概率机器人" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/probabilistic_robotics.png">
+需要的预备知识：</p>
+<ol>
+<li>
+<p>线性代数</p>
+</li>
+<li>
+<p>概率，概率密度函数</p>
+</li>
+<li>
+<p>离散变量贝叶斯滤波</p>
+</li>
+<li>
+<p>连续变量贝叶斯滤波推导</p>
+</li>
+</ol>
+<h2 id="学习心得">学习心得<a hidden class="anchor" aria-hidden="true" href="#学习心得">#</a></h2>
+<p>首先是概念理解，需要把概念代表的物理意义搞清楚：事件≠随机变量，随机变量是对事件的数量化描述，事件是随机变量的取值，随机变量的取值可以是一个数，也可以是一个向量。概率密度函数是对随机变量的取值的概率分布的描述，概率密度函数的积分就是概率。概率密度函数的积分就是概率，概率密度函数的积分就是概率，概率密度函数的积分就是概率。重要的事情说三遍。</p>
+<p>亲自手写公式推导一遍，在这个过程中会强烈加深对内部逻辑的理解，争取可以做到经过很长时间之后，你仍然可以随便拿一张纸开始从零推导</p>
+<p>感觉基于贝叶斯的随机过程计算其实是在更新变量的概率分布，并不是直接计算最终你看到的数据，最后你得到的数据只是这个过程当中的附带产品。</p>
+<p>上面这一条的感受里面说的计算过程，基础是全概率下的全部样本空间，像是在一个无限大的平面上（因为真实值的取值是无穷无尽的）时刻飘过一团云，这团云和云笼罩下的区域是本次计算的结果。</p>
+<h2 id="符号说明">符号说明<a hidden class="anchor" aria-hidden="true" href="#符号说明">#</a></h2>
+<p>一般性地，我们用$\boldsymbol X$表示随机变量，用$\boldsymbol x$表示随机变量的某一个具体的取值。用$\boldsymbol{y}$表示测量值。$\boldsymbol{u}$表示系统的控制量。$\boldsymbol{w}$表示系统的过程噪声，$\boldsymbol{v}$表示测量噪声。黑体代表这些变量是向量。</p>
+<h2 id="概率论回顾">概率论回顾<a hidden class="anchor" aria-hidden="true" href="#概率论回顾">#</a></h2>
+<p>随机变量$\boldsymbol X$(Random Variable)的物理意义是把随机事件数量化。随机变量分为离散随机变量和连续随机变量。离散随机变量的取值是有限的，连续随机变量的取值是无限的。随机变量的取值可以是一个数，也可以是一个向量。个人觉得随机变量只是对随机事件的定量描述，是更加具象化的表达方式。更加核心的还是随机事件，所以下面的描述都是基于事件来推导公式的，并没有带入随机变量的表达。</p>
+<p>条件概率的定义：
+某事件B发生的条件下，事件A发生的概率，记为$P(A|B)$。
+工程上是把事件看作随机变量在某一时刻取某一个数值，所以，在实际计算时，计算的是条件概率密度函数，并不是单单一个条件概率。</p>
+<p>乘法公式：
+$P(AB)=P(A)P(B|A)=P(B)P(A|B)$
+描述的是随着时间的推移，事件A和事件B同时发生的概率可以通过事件A发生的概率和基于A发生B发生的概率相乘得到。方便针对每一个概率进行单独的计算从而得到一个总的概率。</p>
+<p>全概率公式：
+全概率公式是另一个很重要的公式，提供了计算复杂事件概率的一条有效的途径，使得一个复杂事件的概率可以通过简单的计算得到。</p>
+<p>全概率公式：设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有
+$P(A)=\Sigma P(B_i)P(A|B_i)$</p>
+<p>贝叶斯公式：
+这个公式得到的前提是乘法公式和全概率公式。
+设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有
+$P(B_i|A)=\frac{P(B_i)P(A|B_i)}{\Sigma_{j=1}^n P(B_j)P(A|B_j)}$</p>
+<p>体会：虽然我没有查找<a href="https://zh.wikipedia.org/zh-cn/%E6%89%98%E9%A9%AC%E6%96%AF%C2%B7%E8%B4%9D%E5%8F%B6%E6%96%AF">托马斯·贝叶斯</a>发现这个定理的过程是不是因为实际的应用问题，因为在状态估计这个领域，具有非常强的适配性，我们可以把样本空间理解成状态变量的空间，$B_i$理解成离散的单个样本，$A$理解成对样本空间的某次测量，$P(B_i)$理解成状态变量的先验概率，$P(A|B_i)$理解成测量值的似然概率 &ndash; 就是假设真实值为$B_i$的条件下测量值为$A$的概率，$P(B_i|A)$理解成状态变量的后验概率（经过测量更新），这样就可以把贝叶斯公式应用到状态估计当中了。</p>
+<p><a href="https://en.wikipedia.org/wiki/Bayes%27_theorem">维基百科</a>里面说这个方程的分母是$P(B)$</p>
+<p><img alt="贝叶斯公式解读" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Bayes_therom.png"></p>
+<p>然后我看到了它说$P(B)$是边缘分布，然后我点进去看啥是边缘分布：
+<a href="https://en.wikipedia.org/wiki/Marginal_distribution">边缘分布</a></p>
+<p>在这里隐约感觉到：这里的论述和线性代数里面的空间向量怎么很类似？跟信号的傅里叶分解也很类似：全部都是把一个复杂的东西分解成一些简单的东西，然后再把这些简单的东西组合起来得到复杂的东西。这块简单的东西就是全样本空间下每一种样本的概率，类似于空间中的基向量，或者傅里叶变换中的基函数，然后这些基函数前面的系数就是权重或者是事件A和$B_i$重叠了多少程度，然后求和就得到了边缘概率。</p>
+<p><img alt="边缘分布" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/margin_distribution.png"></p>
+<p>最后再次用更好记忆的方式写一遍贝叶斯公式：</p>
+<p>$$
+后验条件概率=\frac{先验概率*似然概率}{边缘概率}
+$$</p>
+<p><strong>条件概率是概率论中一个既重要又实用的概念</strong>。 &ndash; 1.4《概率论与数理统计》茆诗松</p>
+<ul>
+<li>pdf: probability density function, 概率密度函数</li>
+<li>cdf: cumulative distribution function, 累积分布函数</li>
+<li>先验概率：就是人们根据自己系统的模型给出来的经验概率</li>
+<li>后验概率：就是通过传感器本身的测量特性&ndash;传感器测某个状态得到的结果这个变量的概率分布和先验的概率分布，得到的对系统的状态变量条件概率$P(X=x|Y=y)$</li>
+<li>似然概率：是一个条件概率，意思是当真实值取值为$x$的时候，测量值取值为$y$的概率，$P(Y=y|X=x)$ (这里默认测量值测量到的就是真实值)</li>
+</ul>
+<p>我觉得还需要加一个边缘概率：边缘概率就是全概率公式对于某一个事件的应用，就是基于所有可能的状态量，测量得到$y$之后的条件概率和先验概率乘积再相加。展现形式是和全概率一样的，只不过这里具有了更多的实际意义。</p>
+<p><strong>这里有一个问题抛出来：假如先验概率变了，后验概率会变吗？似然概率会变吗？边缘概率会变吗？</strong></p>
+<p>我的回答是似然概率不变，边缘概率会变，因为从全概率公式就可以知道那些“基底”变了，前面的参数没变，整个求和就变了，所以后验概率也变了。</p>
+<p><a href="https://www.bilibili.com/video/BV1aE411p7VE/?spm_id_from=333.788.recommend_more_video.-1&amp;vd_source=9392cfe9af21818da00c1bb0a21e4971">老王的视频必须看一看</a></p>
+<p><a href="https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python">Kalman-and-Bayesian-Filters-in-Python</a></p>
+<p><img alt="evidence" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/Bayes_evidence.png"></p>
+<h2 id="桥梁">桥梁<a hidden class="anchor" aria-hidden="true" href="#桥梁">#</a></h2>
+<p>在纯讲概率的书籍当中，很少结合工程应用来说明概念和实际的对应关系，导致中间缺少一个可以让工程师充分理解的概念体系：</p>
+<p><img alt="某公司的双目视觉系统" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/atracsysFTK500_specs.png"></p>
+<p>比如你作为某公司机器人系统研发工程师，在拿到如下的产品性能参数之后，需要开发一套可以稳定准确跟踪目标的机器人系统，这个系统可以输出空间内的特定目标的三维坐标和旋转信息，但是它的输出数据具有误差，那个RMS就代表了在不同的深度下（对于相机而言）你的系统使用到的数据的不确定性。例如在距离相机2.4m的标记点，测量数据和实际值之间最差会达到0.11mm，凭借直觉你肯定在想，假如真实值是$x=5$, 出现$y=5.01$的情况的概率是多大？出现$y=5.11$的情况的概率又是多大？但你的系统又想尽量按照真实值去跟踪目标，这时候你会想到设计一个滤波器去解决这个不确定性，如何设计能够把不确定性降到最低？你设计的这个方案肯定是需要把这个视觉系统的技术参数作为配置项应用进去的，怎么应用呢？想要解决这个工程问题，需要首先清楚如下几个概念：</p>
+<p>最基本的我认为是状态量或者测量量是随着时间变化的，是一个变量，而这个变量自带一个概率的分布，就是随机变量的分布函数$F(X)$，它表示当随机变量$X=x_0$这件事情发生的概率有多大。但是对于连续随机变量来说，在每一个点上这个变量发生的概率是0，这个事情就让人比较难以理解和处理，所以就定义出来连续随机变量的概率密度函数，对概率密度函数求积分就得到了$F(X&lt;x_0)$的概率分布函数。</p>
+<p>我们对随机变量的估计是根据测量数据而得到的，怎样把测量值考虑进去？不能绝对地相信测量值，因为传感器有误差，不能绝对地相信先验分布，因为很多时候不可能掌握，比如自动驾驶汽车在碎石路上行驶的过程中地面的摩擦系数变化很大，车轮容易打滑，汽车的纵向速度随时都有可能发生变化，所以需要根据车轮上的编码器和车辆的运动模型折中地做出估计。</p>
+<h2 id="连续随机变量">连续随机变量<a hidden class="anchor" aria-hidden="true" href="#连续随机变量">#</a></h2>
+<p>需要解决的问题：</p>
+<ol>
+<li>贝叶斯公式推导的是单独事件的概率，实际应用过程中需要的是对连续随机变量的概率密度函数进行后验估计，怎么做？</li>
+<li>前面的内容都是需要在已知全样本以及对应的概率情况下计算当前的后验概率分布，但是实际情况中，我们无法预先知道全样本的分布情况，也不可能重复多次做实验来得到全样本，因为首先一点是连续变量理论上没有办法做有限的实验来覆盖所有的情况。</li>
+</ol>
+<p>上面的问题对应于贝叶斯统计的相关知识。</p>
+<p>贝叶斯统计推断的基础是总体信息，样本信息和先验信息。三个概念是后面推导的定性指导，可以帮助我们对公式进行变形。</p>
+<p><span style="color:darkblue">总体信息是总体的分布或者是总体所属分布族提供的信息。</span> 我对总体信息的理解是包含了并不需要很细致的参数信息，例如只是知道了分布是正态分布，并不清楚期望和方差是多少，或者书中举的例子，我国确认国产轴承寿命分布是韦布尔分布花费了五年时间。</p>
+<p><span style="color:darkblue">样本信息是抽取样本所得观测值提供的信息，属于本次实验得到的结果。它可以进一步让人了解总体分布的具体参数，例如总体均值，总体方差等等。有了样本，才有了统计学，才可以通过计算机具体地描述这个分布的特性，也就是参数化这个分布（或者穷举出来）</span></p>
+<p><span style="color:darkblue">先验信息，是和前面的样本信息对应的，就是在做实验之前，需要首先了解这个问题在历史上或者经验情况，利用这种信息得到的分布叫做先验分布。</span> 我的理解：例如历史经验，根据牛顿第二定律，力，速度，加速度，位移具有一定的约束关系，如果我们关心的随机变量是速度，但是我们知道加速度和受力的关系，那么，通过函数的映射，就可以得到速度的分布。&ndash; 这里我的理解可能比较牵强，需要后面再次确认是否正确，因为这里可能是对随机变量的函数的分布的理解。</p>
+<p>摘录书中的原话：</p>
+<blockquote>
+<p>贝叶斯学派的基本观点是：任一未知量$\boldsymbol\theta$都可以看作随机变量，可以用一个概率分布去描述，这个分布是先验分布。在获得样本之后，总体分布、样本与先验分布通过贝叶斯公式结合起来得到未知量$\boldsymbol\theta$新的分布&ndash;后验分布。任何关于$\boldsymbol\theta$的统计推断都应该基于后验分布。</p>
+</blockquote>
+<p>贝叶斯公式的概率密度函数形式：
+原书中介绍得已经很详细了，这里不再重复，只是写出来我的理解。
+1.</p>
+<p>基本的概念清楚了之后，我们关心的是后验概率，因为贝叶斯的统计推断就是得到后验概率来更准确地描述随机变量的分布情况。</p>
+<p>当测量值是$y$的条件下，不同的$x$取值对应的概率分布是什么？其实这么写等于没有写，因为在任何一个点上面，结果是0！出现这个情况的原因是连续随机变量的概率是概率密度函数在这个点上的积分永远为0。</p>
+<p>所以我们先写成概率分布函数，然后计算完概率分布函数之后对变量求导数，就得到了这个变量的概率密度函数。准确地说是条件概率分布函数：
+$$
+P(X&lt;x|Y=y)=\int_{-\infty}^xf(x|y)dx
+$$</p>
+<p>然后根据贝叶斯后验概率计算公式，尝试写一下求和后面的部分：</p>
+<p>$$
+P(X=u|Y=y)=\frac{P(Y=y|X=u)P(X=u)}{P(Y=y)}
+$$</p>
+<p><strong>但是上面的式子是不能这么写的，因为分母是0。</strong></p>
+<p>改写为极限的形式：</p>
+<p>$$
+P(X=u|Y=y)=\lim _{\epsilon \to 0}\frac{P(y&lt;Y&lt;y+\epsilon|X=u)P(X=u)}{P(y&lt;Y&lt;y+\epsilon)}
+$$</p>
+<p>所以需要寻找一种恰当的表达方式来说明问题，根据连续变量的条件分布&ndash; 3.5.1 条件分布 二 连续变量的条件分布:如果随机变量的概率密度函数是连续可导的，那么，取一个极限表达。
+一般地，描述连续随机变量的概率分布写成贝叶斯公式如下：</p>
+<p>$$
+P(X&lt;x|Y=y)=\lim _{\epsilon \to 0} \Sigma _{u=-\infty}^x\frac{P(y&lt;Y&lt;y+\epsilon|X=u)P(u&lt;X&lt;u+\epsilon)}{P(y&lt;Y&lt;y+\epsilon)}
+$$</p>
+<p>看到局部区间的概率，可以使用概率密度函数进行替代：</p>
+<p>$$
+\frac{P(y&lt;Y&lt;y+\epsilon|X=u)P(X=u)}{P(y&lt;Y&lt;y+\epsilon)}=\frac{\int_{v=y}^{v=y+\epsilon}f_{Y|X}(v|u)dv\int_{v=u}^{v=u+\epsilon}f_X(v)dv}{\int_{v=y}^{v=y+\epsilon}f_Y(v)}
+$$</p>
+<p>求和和取极限之间没有关系，把取极限放入到求和公式内部并且利用积分中值定理得到,注意等式右边的积分范围是$(y, y+ \epsilon)$：</p>
+<p>$$
+\lim _{\epsilon \to 0} \frac{P(y&lt;Y&lt;y+\epsilon|X=u)P(X=u)}{P(y&lt;Y&lt;y+\epsilon)}=\lim _{\epsilon \to 0}\frac{(\int f(v|u)dv) / \epsilon \times \int f_X(v)dv / \epsilon}{(\int f_Y(v)dv) / \epsilon}
+=\lim _{\epsilon \to 0} \frac{f(y|u)f_X(u)}{f_Y(y)}\epsilon
+$$</p>
+<p>上面的式子代入到求和公式当中，得到：</p>
+<p>$$
+P(X&lt;x|Y=y)=\lim _{\epsilon \to 0} \Sigma _{u=-\infty}^x\frac{f(y|u)f_X(u)}{f_Y(y)} \epsilon
+$$</p>
+<p>推导到这里，再利用积分的定义，
+就可以得到连续随变量的后验概率分布公式：</p>
+<p>$$
+P(X&lt;x|Y=y)=\int_{-\infty}^{x} \frac{f(y|u)f_X(u)}{f_Y(y)}du
+$$</p>
+<p>在书里面概率密度函数写为$p$,在这里我写为了$f$</p>
+<h2 id="总结">总结<a hidden class="anchor" aria-hidden="true" href="#总结">#</a></h2>
+<p>贝叶斯滤波认为对随机变量的估计需要有一个先验的分布，也需要有采样得到的样本，这样综合起来把对随机变量的分布重新按照后验的方式进行估计，得到的分布结果是更接近于真实情况的。</p>
+<h2 id="参考">参考<a hidden class="anchor" aria-hidden="true" href="#参考">#</a></h2>
+<p><a href="https://inst.eecs.berkeley.edu/~ee126/sp18/projection.pdf">The Hilbert Space of Random Variables Electrical Engineering 126 (UC Berkeley)</a></p>
+<p><a href="http://www.ilectureonline.com/lectures/subject/SPECIAL%20TOPICS/26/190">iLecture</a></p>
+<p><a href="http://www.cnki.com.cn/Article/CJFDTOTAL-HLYZ200204013.htm">卡尔曼滤波算法的几何解释. 作者，范洪达,李相民</a></p>
+<p><a href="https://cacm.acm.org/magazines/2019/11/240389-an-elementary-introduction-to-kalman-filtering/fulltext">An Elementary Introduction to Kalman Filtering</a></p>
+<p><a href="https://www.cs.unc.edu/~welch/kalman/media/pdf/Kalman1960.pdf">A New Approach to Linear Filtering and Prediction Problems</a></p>
+<p><a href="https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python">!!!GREAT series:
+Kalman-and-Bayesian-Filters-in-Python</a></p>
+<iframe width="100%" height="800" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/茆诗松概率论LaTeX.pdf">
+<p><a href="https://book.douban.com/subject/10785583/">思考，快与慢</a></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/kalman-filtering/">Kalman Filtering</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2023-12-08-kalman-filter-theory-2/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>卡尔曼滤波器学习笔记（二）：随机过程和线性卡尔曼滤波器</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2020-02-03-linear-algebra-svd/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>矩阵的奇异值分解</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>学习RL(五) | Yang&#39;s Blog</title>
+<meta name="keywords" content="强化学习">
+<meta name="description" content="积累奖励(状态价值)对策略的梯度与环境动力学无关
+在写两个算法之后，再明确一下基于优化策略梯度的核心思想。在RL_5中推导了策略梯度是一个期望，具体形式如下：
+$$
+\begin{equation}
+\nabla _\theta J(\theta) = \mathbb{E} _{a \sim \pi _\theta, s \sim d _{\theta}} \sum _{t=0}^{T} A^{\pi _{\theta}}(s_t,a_t)\nabla _\theta \ln \pi _{\theta}(a_t|s_t)
+\label{eq1}\tag{1}
+\end{equation}
+$$
+$$
+\begin{equation}
+\begin{aligned}
+\nabla _{\theta} J(\theta) &amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} A^{\pi}(s,a) \nabla _{\theta} \pi(a|s) \\
+&amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} \pi(a|s)A^{\pi}(s,a) \frac {\nabla _{\theta} \pi(a|s)}{\pi(a|s)} \\
+&amp;= \mathbb{E} _{s \sim d _{\theta},a \sim \pi} A^\pi(s,a) \nabla _{\theta} \ln \pi(a|s)
+\end{aligned}
+\label{eq2}\tag{2}
+\end{equation}
+$$">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2026-01-15-rl_5/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2026-01-15-rl_5/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      学习RL(五)
+    </h1>
+    <div class="post-meta"><span title='2026-01-15 00:00:00 +0000 UTC'>2026年1月15日</span>&nbsp;·&nbsp;<span>45 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2026-01-15-RL_5.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#积累奖励状态价值对策略的梯度与环境动力学无关">积累奖励(状态价值)对策略的梯度与环境动力学无关</a></li>
+    <li><a href="#trpotrust-region-policy-optimization">TRPO:Trust Region Policy Optimization</a></li>
+    <li><a href="#a2c">A2C</a></li>
+    <li><a href="#ppoproximal-policy-optimization">PPO:Proximal Policy Optimization</a>
+      <ul>
+        <li><a href="#测试">测试</a></li>
+      </ul>
+    </li>
+    <li><a href="#参考">参考</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="积累奖励状态价值对策略的梯度与环境动力学无关">积累奖励(状态价值)对策略的梯度与环境动力学无关<a hidden class="anchor" aria-hidden="true" href="#积累奖励状态价值对策略的梯度与环境动力学无关">#</a></h2>
+<p>在写两个算法之后，再明确一下基于优化策略梯度的核心思想。在<a href="https://warden2018.github.io/2026-01-15-rl_5/">RL_5</a>中推导了策略梯度是一个期望，具体形式如下：</p>
+<p>$$
+\begin{equation}
+\nabla _\theta J(\theta) = \mathbb{E} _{a \sim \pi _\theta, s \sim d _{\theta}} \sum _{t=0}^{T} A^{\pi _{\theta}}(s_t,a_t)\nabla _\theta \ln \pi _{\theta}(a_t|s_t)
+\label{eq1}\tag{1}
+\end{equation}
+$$</p>
+<p>$$
+\begin{equation}
+\begin{aligned}
+\nabla _{\theta} J(\theta) &amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} A^{\pi}(s,a) \nabla _{\theta} \pi(a|s) \\
+&amp;= \mathbb{E} _{s \sim d _{\theta}}\sum _{a \in \mathcal A} \pi(a|s)A^{\pi}(s,a) \frac {\nabla _{\theta} \pi(a|s)}{\pi(a|s)} \\
+&amp;= \mathbb{E} _{s \sim d _{\theta},a \sim \pi} A^\pi(s,a) \nabla _{\theta} \ln \pi(a|s)
+\end{aligned}
+\label{eq2}\tag{2}
+\end{equation}
+$$</p>
+<p>$(\ref{eq2})$是一个很理想的公式：它代表了通过平均化&quot;优势函数乘以策略的对数梯度&quot;来计算策略梯度。</p>
+<ol>
+<li>$d_\theta$表示在策略$\pi_\theta$下，状态的分布，这个分布是无法直接计算的。我们把$A ^{\pi}(s,a) \nabla _{\theta} \ln \pi(a|s)$看作关于$s$的函数$f(s)$，那么，如果采样足够多的不同$s$的$f(s)$，求平均，就近似了$\mathbb{E} _{s \sim d _{\theta}}\big (f(s)\big )$，从而避免了直接计算$d _{\theta}$的问题。</li>
+<li>优势函数$A^\pi(s,a)$也无法找到准确的值，需要一个估计函数$\hat{A}(s,a)$来代替。</li>
+</ol>
+<p>$(\ref{eq1})$中，体现的是对一个轨迹的不同时刻采样求总和的过程。如果轨迹上面采集了$T$个时刻的数据，当$T\rightarrow\infty$时，因为$s$的随机性导致的变动就被抹平了：对于$(\ref{eq2})$的写法，等价于
+$$
+\begin{aligned}
+&amp; \nabla _{\theta} J(\theta) = T\mathbb{E} _{s \sim d _{\theta},a \sim \pi} A^{\pi}(s,a) \nabla _{\theta} \ln \pi(a|s)
+\end{aligned}
+\label{eq3}\tag{3}
+$$</p>
+<p>要注意，背后的不确定性是环境带来的，就是在既有策略$\pi$下，状态$s$的出现具有随机性，所以在求梯度的时候，我们引入期望，去尽量稳定策略的更新，不能因为某些采样的跳动，导致策略大范围变化。</p>
+<p>以上，回答了<a href="https://warden2018.github.io/2026-01-15-rl_5/#%E6%80%BB%E7%BB%93">总结</a>当中的问题。</p>
+<h2 id="trpotrust-region-policy-optimization">TRPO:Trust Region Policy Optimization<a hidden class="anchor" aria-hidden="true" href="#trpotrust-region-policy-optimization">#</a></h2>
+<p>论文整体的思路是尽量从理论上的梯度求解，通过一系列的近似，去得到一个梯度估计的近似值，用于更新策略参数。</p>
+<p>主要贡献是：</p>
+<ol>
+<li>
+<p>提出一种局部估计器（local approximator），论证了把估计器减去KL差异当做目标函数$L_{\pi_i}(\pi)-CD^{max}_{KL}(\pi_i,\pi)$，通过最大化该函数，就可以计算得到策略的更新方向，从而使得策略不断朝向好的方向发展。</p>
+</li>
+<li>
+<p>引入Trust Region的概念，限制每次策略更新的幅度，避免策略更新过大，策略变化太大，是训练不稳定的主要原因，很多工作都在维持稳定上下功夫。具体说，就是要保证最大化目标函数的同时，还要保证策略变化的KL散度在一个范围内。所以，该算法不是一个纯优化的问题，还需要满足一个约束条件。</p>
+</li>
+<li>
+<p>提出重要性采样的方法，将理论上的对所有action的优势函数与策略梯度乘积加权求和，变为在一个$q(a|s_n)$分布下的加权求和：$\mathbb E_{a\sim q(a|s_n)}\frac{\pi_\theta(a|s_n)}{q(a|s_n)}\hat A(s_n,a)$。在连续动作空间下，$q(a|s_n)=\pi_{old}(a|s_n)$可以取得较好效果。<em><strong>对于状态分布的采样，要满足$s\sim d_{\pi_{old}}$。所以，针对基于采样的估计，思路就是采用$\pi_{old}$在环境中采集一系列时间点数据，利用GAE(Generalized Advantage Estimation)里面的方法计算优势函数，然后取平均（用旧策略下的优势平均替代理论里面的对状态、动作分布的加权平均）。</strong></em></p>
+</li>
+<li>
+<p>下图是两种采样计算的方法：一种是针对某任何一个状态-动作对$s_n，a_n$，采集轨迹上的关于$(s_n,a_n)$的数据，例如优势函数等，然后平均。这点是后续PPO当中提到的rollout出来的轨迹$\tau$，$\tau$上的每一个时间点的优势相加求平均使用的方法；第二种是在每一种出现的$s$上，采样出若干个action分支，统计分支上的优势作为重要性采样的结果，对该结果看作是某个状态的“优势平均”，然后，再遵循$s\sim d_{\pi_{old}}$, 实际就是把这些状态下计算出来的“优势平均”再平均，我们可以想象，当一个状态分布中，某个$s$出现的次数越多，那么这个平均操作就更多地加入了该状态所对应的优势，从而更契合公式中的第一个期望。</p>
+</li>
+</ol>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/TRPO_single_path_vine.png"></p>
+<blockquote>
+<p>论文定义一个局部估计器（local approximator）$L_\pi(\tilde \pi)=\eta(\pi) +\sum_{s\in \mathcal S}\rho_{\pi}(s)\sum_{a\in\mathcal A}\tilde \pi(a|s)A_\pi(s,a)$ <em><strong>visitation probability</strong></em> $\rho_\pi(s)$替代$\rho_{\tilde \pi}(s)$。这里$L_\pi(\tilde \pi)$是说，已知$\pi$的综合收益，估计新的$\tilde \pi$的综合收益。后面对理解alg.1 有帮助。这里多讲几句，该局部估计器，对新策略$\tilde\pi$带来的reward是需要遍历所有的环境状态，根据<em><strong>visitation probability</strong></em>对一个“新的平均行动价值”求期望，“新的平均行动价值”是上面公式的第二个求和：依据旧的Advantage function和新的策略计算出“新平均行动价值”，所以，整个局部更新可以理解为原有策略的价值总和加新的策略带来的价值更新。之所以是local的，是因为如果换了策略，状态的<em><strong>visitation probability</strong></em>一定是发生变化的，但是此刻行动还没有执行，无从知道环境状态的分布发生了什么变化，只能假设变化不大，忽略，这也是论文的后面为什么一定要微调策略，而不是大动，大动的话，环境肯定会发生巨大变化，这时候，再去对局部估计器求梯度得到的更新参数，也许就是适得其反了。后面围绕如何最大化$L$，就把它当做优化的目标，且需要满足一个条件，就是策略的变化评价参数$\overline D_{KL}^\rho(\theta_1,\theta_2)$要在Trust Region 范围内。</p>
+</blockquote>
+<h2 id="a2c">A2C<a hidden class="anchor" aria-hidden="true" href="#a2c">#</a></h2>
+<p>actor-critic 结构就是构造两个函数（神经网络），actor网络输入是状态，输出是动作均值（动作空间连续）；critic 网络输入是状态，输出是状态价值，用来计算$V(s_t)$。因为$R_t$是通过数据对轨迹积累起来的，来源于数据，所以，critic输出价值用于优化actor，actor在环境中产生新的trajectory就会有新的rewards当做对价值的新估计，然后去更新critic。
+<em><strong>论文最大的贡献就是采用两个网络：一个是actor，使用梯度的方式优化策略参数，一个是critic，使用优势函数的估计$\hat A$估计状态价值，从而在新的策略生成新的reward-to-go的情况下，继续估计新的优势，然后crtic继续逼近更加真实的状态价值。</strong></em></p>
+<p>我觉得这张图非常形象生动解释了actor-critic的工作原理(<a href="https://hackernoon.com/intuitive-rl-intro-to-advantage-actor-critic-a2c-4ff545978752">来源</a>)：
+<img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/fox_Cranberry.png"></p>
+<p>在我自己写的<a href="https://github.com/warden2018/myRL/tree/main/ppo">PPO</a>的代码里面，我还附上了一段话，算是该图的补充：</p>
+<blockquote>
+<p>from my ppo code:</p>
+</blockquote>
+<blockquote>
+<p>Evaluate state values according to current critic:
+Below story is from <a href="https://hackernoon.com/intuitive-rl-intro-to-advantage-actor-critic-a2c-4ff545978752">hackernoon</a>:
+This function acts extremely as reflection:
+Imagine the fox called Cranberry doing the reflection. At first, it does not know the exactly
+values of different state-action pair ($Q(s,a)$). It has to make a prediction of such values($\hat Q(s,a)$) to guide itself taking next actions.
+But after doing several actions it stops to do a reflection: &ldquo;So several steps ahead, I  predicted $Q(s_t,a_t)$ as q,
+but the rewards-to-go I get is g, difference is too large, I should adjust the $Q(s_t,a_t)$ to a closer level of g when
+I have the same $s_t$ next time to predict!&rdquo; So in Cranberry&rsquo;s mind there is a
+state-action value table to tell it the values given states. So this table is always updating.
+Cranberry takes the latest state-action value table to do prediction of next state-action value, but given a certain state and candidate
+state-action values, which action should be taken there is another table being responsible for this.
+Taking actions depends on the history habits and newly observed rewards, such as rewards that are never
+seen before. Because this fox has a family to raise, below are two restrictions:</p>
+</blockquote>
+<blockquote>
+<ol>
+<li>it does not want to easily change the history policy</li>
+</ol>
+</blockquote>
+<blockquote>
+<ol start="2">
+<li>it wants to find more rewards to provide better life for its family</li>
+</ol>
+</blockquote>
+<p>There should be a balance between the two.
+So an objective(target) combining 1 and 2 comes: penalizing big policy changes and maximizing some predicted(estimated)
+value(it could be $\hat Q(s,a)$, $\hat V(s)$ or $A(s,a)$)
+If the fox is a:</p>
+<blockquote>
+</blockquote>
+<ol>
+<li>simple policy gradient fox
+&ldquo;Next time when I am at state s,  because I know $\hat Q(s,a_{best})$ is the largest one ,so I tune the $\pi(s,a_{best})$ to the biggest
+among those $\pi(s,a)$&rdquo; if the expected value($\hat Q(s,a)$) of $Q(s,a)$ is not correct, it will cause less exploration and the total reward should
+not be the max.</li>
+</ol>
+<blockquote>
+</blockquote>
+<ol start="2">
+<li>intelligent policy gradient fox
+&ldquo;Next time when I am at state $s$, I should not only consider $\hat Q(s,a)$ but also consider the actual rewards after
+the action is taken. I should compare how different between the expected reward$(Q(s,a))$ of taking that action and
+the actual rewards. If the expected reward is high(that means $\hat Q(s,a)$ high), but rewards-to-go is low, it means
+I overestimated the $Q(s,a)$， in this case, I should not choose $a$; on the contrary, if the expected rewards is low(that
+means $\hat Q(s,a)$) is low, but the rewards-to-go is high, that means I under estimated this action, I should take this action
+more when I am at state $s$ in the future. So in my mind, I regard (rewards-to-go - $Q(s,a)$) as the criteria of taking actions.
+&quot; &ndash; this strategy will not only do more exploration but also keep the policy to go in the direction of at least not bad(TRPO).</li>
+</ol>
+<blockquote>
+<p><strong>Actor-Critic Framework:</strong> A concept essential for understanding the original PPO paper by Schulman et al. is the actor-critic framework <a href="https://arxiv.org/pdf/1707.06347">[4]</a>. Already in the 1980s, Sutton et al. argued that it is inefficient for the agent to evaluate its own actions <a href="https://www.derongliu.org/adp/adp-cdrom/Barto1983.pdf">[5]</a>. Instead, they proposed splitting the agent into two roles: the <strong>actor</strong>, which decides actions and learns the policy $\pi(a|s)$, and the <strong>critic</strong>, which evaluates actions by estimating the state value $V(s)$. This framework makes the algorithm versatile and balances exploration vs exploitation. The two roles can be designed using neural networks with a shared backbone.
+摘自<a href="https://medium.com/@felix.verstraete/mastering-proximal-policy-optimization-ppo-in-reinforcement-learning-230bbdb7e5e7">Felix Verstraete</a></p>
+</blockquote>
+<h2 id="ppoproximal-policy-optimization">PPO:Proximal Policy Optimization<a hidden class="anchor" aria-hidden="true" href="#ppoproximal-policy-optimization">#</a></h2>
+<p>PPO借鉴了TRPO的重要性采样思想，摆脱了策略变化不能太大的显式约束条件，而是改造目标函数，将策略变化不能太大融合到目标函数中，变为一个隐式的约束。KL计算的是整个分布的差距，PPO更简单粗暴，直接针对动作概率$\pi(a|s)$的变化率做限制，训练阶段，rollout出去的轨迹上，每一个时间点的新旧策略的动作概率比值$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$给出明确的限制，如果超过该限制，就根据优势函数的正负，做强制限制。
+这样做，可以把目标函数变为如下的形式：</p>
+<p>$$
+\begin{aligned}
+&amp; L^{CLIP}(\theta)=\mathbb E_t\left[\min\left(r_t(\theta)\hat A_t, \text{clip}(r_t(\theta),1-\epsilon,1+\epsilon)\hat A_t\right)\right] \\
+&amp; r_t=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}
+\end{aligned}
+$$</p>
+<p>另外，PPO面对的另一个问题是，在计算优势函数的时候，需要用到状态价值$V(s_t)$(计算优势函数$A(s_t,a_t)$用到)，而状态价值的准确估计能够最大程度描述环境的价值分布，指引策略正确演化，并且能够降低目标函数的方差，提升训练的稳定性。那么问题就是如何在迭代策略的同时，还可以不断迭代一个状态价值的估计函数？那么，双网络的架构就诞生了：actor和critic。critic网络专门用来估计状态价值，actor网络用来优化策略。这种结构也是一种自举的形式，就是不完美的策略下，状态的价值一定是被低估的（双方谁都别埋怨谁，起始就是草台班子），我们可以使用环境反馈的奖励加上不完美的状态价值函数估计更贴近真实的状态价值，而得到更好的状态价值之后，再指导策略朝向获取更多奖励的方向前进。这里再提一下TD方法是如何学习价值函数的：</p>
+<p>TD系列，是Q-learning的基础，核心思想是基于当前状态$s_t,V(s_t)$，采取一次行动，然后根据得到的环境反馈$s_{t+1},r$，计算新时刻的价值更新。本质是把下一个状态的价值$V(s_{t+1})$当做上一次状态的最终收益，并且使用简单的小于1的参数进行信任度加权，这个过程，极容易不稳定：某个状态的价值$V(s)$方差很大。在TD更新中，$r+\gamma V(s_{t+1})$称作TD Target，所以，TD是一种自举（Bootstrap），利用估计值去估计。</p>
+<p>$$V(s_t)=V(s_t)+\alpha \big(r+\gamma V(s_{t+1})-V(s_t)\big)$$</p>
+<p>想要很好理解PPO具体实现细节，可以参考OpenAI的文档：</p>
+<p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/PPO_openAI.svg"></p>
+<p>在实现中注意的点：</p>
+<ol>
+<li>在<a href="https://spinningup.openai.com/en/latest/spinningup/rl_intro.html#stochastic-policies">OpenAI Spinning Up&ndash;Key Concepts</a>里面，提到的<strong>Stochastic Policies</strong>, 策略神经网络（也叫做<strong>Diagonal Gaussian Policies</strong>）返回的是动作的平均，还需要一个方差参数$\sigma$，然后根据均值和方差，采样出具体的动作$a\sim \mathcal N(\mu(s),\sigma^2)$。这种方式，不仅可以让策略网络输出一个连续动作空间的采样动作，还可以输出该采样动作的概率，方便生成PPO的目标函数。</li>
+<li>关于衰减参数$\gamma$。在优化目标函数时候，使用不衰减的奖励，但是在估计状态价值的时候，往往使用衰减的奖励。出于什么考虑，在上面的链接当中没有提到，后面找到答案会补充到这里。
+<img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/RL_discount_reward.png"></li>
+</ol>
+<h3 id="测试">测试<a hidden class="anchor" aria-hidden="true" href="#测试">#</a></h3>
+<p>原始的PPO算法，不加任何技巧的情况下，使用如下参数，训练<code>BipedalWalker-v3</code>的agent。</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-json" data-lang="json"><span style="display:flex;"><span><span style="color:#e6db74">&#34;training&#34;</span><span style="color:#960050;background-color:#1e0010">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;max_steps_one_episode&#34;</span>:<span style="color:#ae81ff">1600</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;rollout_steps&#34;</span>: <span style="color:#ae81ff">800</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;iteration_steps_per_rollout&#34;</span>: <span style="color:#ae81ff">10</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;learning_rate&#34;</span>: <span style="color:#ae81ff">0.0005</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;batch_size&#34;</span>: <span style="color:#ae81ff">2048</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;gamma&#34;</span>: <span style="color:#ae81ff">0.99</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;actor_model_name&#34;</span>: <span style="color:#e6db74">&#34;trained_models/ppo/BipedalWalker-v3_actor.pth&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;critic_model_name&#34;</span>: <span style="color:#e6db74">&#34;trained_models/ppo/BipedalWalker-v3_critic.pth&#34;</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/episode_rewards.png"></p>
+<h2 id="参考">参考<a hidden class="anchor" aria-hidden="true" href="#参考">#</a></h2>
+<ul>
+<li><a href="http://incompleteideas.net/book/the-book-2nd.html">Sutton&rsquo;s Book</a></li>
+<li><a href="https://lilianweng.github.io/posts/2018-04-08-policy-gradient/">lil&rsquo;s log</a></li>
+<li><a href="https://danieltakeshi.github.io/2017/03/28/going-deeper-into-reinforcement-learning-fundamentals-of-policy-gradients/">Seita&rsquo;s Place</a></li>
+<li><a href="https://github.com/openai/baselines">Baseline</a></li>
+<li><a href="https://spinningup.openai.com/en/latest/algorithms/ppo.html">OpenAI Spinning Up - PPO</a></li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2026-03-16-rl_6/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>学习RL(六)</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>手眼标定</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

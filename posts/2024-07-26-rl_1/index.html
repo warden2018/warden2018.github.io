@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>学习RL(一) | Yang&#39;s Blog</title>
+<meta name="keywords" content="强化学习">
+<meta name="description" content="基础概念
+智能体和环境交互
+
+图1: Agent 与环境交互的基本结构。Agent 根据当前状态 $s_t$ 选择动作 $a_t$，环境依据状态转移概率 $p(s&rsquo;,r|s,a)$ 返回下一状态 $s_{t&#43;1}$ 和奖励 $r_t$。
+上面的图展示了RL智能体与环境交互的结构。这个示意图是很广义和普遍的：action可以是加载在机械臂电机上的控制电压或者是PWM信号，也可以是高级别的决策，例如是否要变道；state也比较灵活，可以看作是传感器回传的数据，也可以看作是在空间中特定符号描述的物体信息。
+奖励
+奖励这个概念我认为比较模糊，或者说它的来源可以是人为设计，也可以是环境给出。在机器人领域，奖励稀疏是一个常见问题，没有奖励的情况下，智能体很难学到真实的状态价值或者动作价值，那么策略的优化就很难进行下去。针对这个问题，后续专门讨论。
+策略
+策略$\pi$是智能体在状态$s$下对动作$a$的选择，或者是一个从状态到动作的映射关系。它可以是一个确定性的函数，例如DDPG和TD3那样输出准确的动作，也可以是一个随机的概率分布，例如PPO输出的是动作的高斯分布期望，可以利用这个期望生成一个分布，然后从分布中采样出来一个具体的动作。
+状态价值$V(s)$
+系统在状态$s$下，根据某个策略$\pi$采取行动，在后续和环境交互的过程中，得到的收益$G$的期望。
+$$
+\begin{aligned}
+&amp; V(s)=\mathbb{E} _{\pi}(G|S=s) \\
+&amp; G=R _{t&#43;1} &#43; \gamma R _{t&#43;2}&#43; \gamma ^2 R _{t&#43;3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t&#43;k&#43;1}
+\end{aligned}
+$$
+行动价值$Q(s,a)$
+在状态$s$下，采取行动$a$之后，在后续和环境交互的过程中，得到的收益$G$的期望。
+$$
+\begin{aligned}
+&amp; Q(s,a)=\mathbb{E} _{\pi}(G|S=s,A=a) \\
+&amp; G=R _{t&#43;1} &#43; \gamma R _{t&#43;2}&#43; \gamma ^2 R _{t&#43;3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t&#43;k&#43;1}
+\end{aligned}
+$$">
+<meta name="author" content="Yang">
+<link rel="canonical" href="http://localhost:1313/posts/2024-07-26-rl_1/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/2024-07-26-rl_1/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    tags: 'none'
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      学习RL(一)
+    </h1>
+    <div class="post-meta"><span title='2024-07-26 00:00:00 +0000 UTC'>2024年7月26日</span>&nbsp;·&nbsp;<span>27 分钟</span>&nbsp;·&nbsp;<span>Yang</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/warden2018/blog/posts/2024-07-26-RL_1.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#基础概念">基础概念</a>
+      <ul>
+        <li><a href="#智能体和环境交互">智能体和环境交互</a></li>
+        <li><a href="#奖励">奖励</a></li>
+        <li><a href="#策略">策略</a></li>
+        <li><a href="#状态价值vs">状态价值$V(s)$</a></li>
+        <li><a href="#行动价值qsa">行动价值$Q(s,a)$</a></li>
+        <li><a href="#bellman方程状态价值和行动价值的递归计算方法">Bellman方程：状态价值和行动价值的递归计算方法</a></li>
+        <li><a href="#sec-optimal-policy">最优策略和最优价值函数</a></li>
+      </ul>
+    </li>
+    <li><a href="#状态价值和动作价值之间的转换关系">状态价值和动作价值之间的转换关系</a></li>
+    <li><a href="#grid-world-example">Grid World Example</a></li>
+    <li><a href="#optimal-grid-world-policy">Optimal Grid World Policy</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="基础概念">基础概念<a hidden class="anchor" aria-hidden="true" href="#基础概念">#</a></h2>
+<h3 id="智能体和环境交互">智能体和环境交互<a hidden class="anchor" aria-hidden="true" href="#智能体和环境交互">#</a></h3>
+<p><img alt="Agent与环境交互示意" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_agent_environment.png">
+<em>图1: Agent 与环境交互的基本结构。Agent 根据当前状态 $s_t$ 选择动作 $a_t$，环境依据状态转移概率 $p(s&rsquo;,r|s,a)$ 返回下一状态 $s_{t+1}$ 和奖励 $r_t$。</em></p>
+<p>上面的图展示了RL智能体与环境交互的结构。这个示意图是很广义和普遍的：<em><strong>action</strong></em>可以是加载在机械臂电机上的控制电压或者是PWM信号，也可以是高级别的决策，例如是否要变道；<em><strong>state</strong></em>也比较灵活，可以看作是传感器回传的数据，也可以看作是在空间中特定符号描述的物体信息。</p>
+<h3 id="奖励">奖励<a hidden class="anchor" aria-hidden="true" href="#奖励">#</a></h3>
+<p>奖励这个概念我认为比较模糊，或者说它的来源可以是人为设计，也可以是环境给出。在机器人领域，奖励稀疏是一个常见问题，没有奖励的情况下，智能体很难学到真实的状态价值或者动作价值，那么策略的优化就很难进行下去。针对这个问题，后续专门讨论。</p>
+<h3 id="策略">策略<a hidden class="anchor" aria-hidden="true" href="#策略">#</a></h3>
+<p>策略$\pi$是智能体在状态$s$下对动作$a$的选择，或者是一个从状态到动作的映射关系。它可以是一个确定性的函数，例如DDPG和TD3那样输出准确的动作，也可以是一个随机的概率分布，例如PPO输出的是动作的高斯分布期望，可以利用这个期望生成一个分布，然后从分布中采样出来一个具体的动作。</p>
+<h3 id="状态价值vs">状态价值$V(s)$<a hidden class="anchor" aria-hidden="true" href="#状态价值vs">#</a></h3>
+<p>系统在状态$s$下，根据某个策略$\pi$采取行动，在后续和环境交互的过程中，得到的收益$G$的期望。</p>
+<p>$$
+\begin{aligned}
+&amp; V(s)=\mathbb{E} _{\pi}(G|S=s) \\
+&amp; G=R _{t+1} + \gamma R _{t+2}+ \gamma ^2 R _{t+3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t+k+1}
+\end{aligned}
+$$</p>
+<h3 id="行动价值qsa">行动价值$Q(s,a)$<a hidden class="anchor" aria-hidden="true" href="#行动价值qsa">#</a></h3>
+<p>在状态$s$下，采取行动$a$之后，在后续和环境交互的过程中，得到的收益$G$的期望。
+$$
+\begin{aligned}
+&amp; Q(s,a)=\mathbb{E} _{\pi}(G|S=s,A=a) \\
+&amp; G=R _{t+1} + \gamma R _{t+2}+ \gamma ^2 R _{t+3} \cdots =\sum _{k=0}^{\infty}\gamma ^k R _{t+k+1}
+\end{aligned}
+$$</p>
+<h3 id="bellman方程状态价值和行动价值的递归计算方法">Bellman方程：状态价值和行动价值的递归计算方法<a hidden class="anchor" aria-hidden="true" href="#bellman方程状态价值和行动价值的递归计算方法">#</a></h3>
+<p>如<a href="#fig5">图5</a>是用将来的状态价值估计当前状态价值的图形化解释。</p>
+<p>前后状态价值的递归关系：
+$$
+V(s_t)=\sum _{a\in \mathcal A}\pi(a|s_t)\sum _{s&rsquo;,r}p(s&rsquo;,r|s,a)\big(r+ \gamma V(s&rsquo;)\big)
+$$</p>
+<p>注意，这里的计算跟策略有关。</p>
+<p>行动价值的递归关系：</p>
+<p>$$
+Q(s_t,a_t)=\sum_{s&rsquo;,r}p(s&rsquo;,r|s_t,a_t)\big(r+\gamma V(s&rsquo;)\big)
+$$</p>
+<p>虽然这里并没有显式体现策略的概率，但是$s&rsquo;$的分布是受到策略的影响的，其实体现在了环境动力学$p(s&rsquo;,r|s_t,a_t)$。</p>
+<p>2025-5-27 value function的进一步清晰：</p>
+<p>在看<a href="https://warden2018.github.io/2026-01-15-rl_5/">Policy Gradient</a>的时候，推导$\nabla_\theta J(\theta)$遇到了理解<em><strong>value function</strong></em>不透彻的问题，其实是卡在没有搞清楚<em><strong>Reward</strong></em>和<em><strong>Return</strong></em>的区别：</p>
+<ul>
+<li>
+<p><em><strong>Reward</strong></em>：状态切换的时候，环境除了告诉智能体下一个状态是什么，还告诉了奖励是多少。</p>
+</li>
+<li>
+<p><em><strong>Return</strong></em>： 是一个长期的量，通过时间的积累，多次<em><strong>Reward</strong></em>计算得到的。随着状态的不断向前迭代，将所有的奖励带上discount相加（因为将来的奖励具有很大的不确定性，不可以原样加进来）得到$G(s)$，对$G(s)$求期望才是<em><strong>Return</strong></em>。</p>
+</li>
+</ul>
+<p><img alt="价值函数示意" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/vf.png">
+<em>图2: 状态价值函数 $V(s)$ 的直观理解。价值是沿轨迹对折扣奖励的累计期望。</em></p>
+<p><img alt="动作价值函数示意" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/actionValue.png">
+<em>图3: 动作价值函数 $Q(s,a)$ 的直观理解。在状态 $s$ 下采取动作 $a$ 后的折扣累计奖励的期望。</em></p>
+<p><img alt="价值函数的图形化解释" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_value_function.png">
+<em>图4: Bellman方程：状态价值函数的图形化解释。价值从终端状态沿时间反向累积。</em></p>
+<p>上面的公式的图形化解释，就是下面的图。<code>Backup Diagrams</code>体现出来$V(s)$可以通过后续action和reward倒推出来。那些分叉的树杈就像是求和当中的某一个单项，它们作为基来对最终的value叠加求和，每一条边是状态转移的概率，概率当作权重。</p>
+<p><img alt="Backup Diagram" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_bellman_illustration.png">
+<em><span id="fig5">图5</span>: Bellman 备份图示意。每个状态的 value 通过后续动作和奖励的加权求和来计算。</em></p>
+<h3 id="sec-optimal-policy">最优策略和最优价值函数<a hidden class="anchor" aria-hidden="true" href="#sec-optimal-policy">#</a></h3>
+<p>强化学习经常需要解决的问题是如何寻找到最优的<em><strong>policy</strong></em>：$\pi_{\star}$，使得对于任何一个$s$，都有$v_{\pi _{\star}}(s) \geq v _\pi(s)$。
+记为：</p>
+<p>$$v_\star(s)=\underset{\pi}\max v_{\pi}(s)$$</p>
+<p>对应的动作价值函数：
+$$
+Q_\star(s,a)=\underset{\pi}\max Q_{\pi}(s,a)
+$$</p>
+<p>还有一个性质，就是最优策略的价值函数，等于最优策略的动作价值函数中，使得$Q_\star(s,a)$最大的动作对应的动作价值：</p>
+<p>$$
+\begin{aligned}
+&amp; v _\star(s)=\max _a Q _\star(s,a) \\
+&amp; =\max _a \sum _{s&rsquo;,r} p(s&rsquo;,r|s,a) \big( r+\gamma v _\star(s&rsquo;) \big) \\
+\end{aligned}
+$$</p>
+<p>最优策略的动作价值函数：
+$$
+\begin{aligned}
+&amp; Q _\star(s,a)=\sum _{s&rsquo;,r} p(s&rsquo;,r|s,a) \big( r+\gamma \max _{a&rsquo;} Q _\star(s&rsquo;,a&rsquo;) \big) \\
+\end{aligned}
+$$</p>
+<p><img alt="最优价值函数的备份图" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/optimal_V_Q.png">
+<em>图6: 最优 $V_\star$ 与 $Q_\star$ 的备份图。最优状态价值反向计算与动作价值的反向计算。</em></p>
+<h2 id="状态价值和动作价值之间的转换关系">状态价值和动作价值之间的转换关系<a hidden class="anchor" aria-hidden="true" href="#状态价值和动作价值之间的转换关系">#</a></h2>
+<ul>
+<li>给定所有的$Q_{\pi}(\boldsymbol s, a)$和$\pi(a|\boldsymbol s)$，如何推导$v_{\pi}(\boldsymbol s)$</li>
+</ul>
+<p><img alt="状态价值与动作价值的关系" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/value_actionValue.png">
+<em>图7: 状态价值与动作价值的关系。给定 $Q_\pi(s,a)$ 和 $\pi(a|s)$，通过对所有动作加权求和得到 $V_\pi(s)$。</em></p>
+<ul>
+<li>给定采取行动之后的所有可能状态的价值$v_{\pi}(\boldsymbol s&rsquo;)$以及对应奖励$r$</li>
+</ul>
+<p><img alt="动作价值与状态价值的关系" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/actionValue_stateValue.png">
+<em>图8: 动作价值与状态价值的关系。给定 $v_\pi(s&rsquo;)$ 和奖励 $r$，通过状态转移概率加权求和得到 $Q_\pi(s,a)$。</em></p>
+<h2 id="grid-world-example">Grid World Example<a hidden class="anchor" aria-hidden="true" href="#grid-world-example">#</a></h2>
+<p>这是一个简单的网格例子，可以用来展示如何利用Bellman公式迭代地计算每一个格子的$V(s)$。对于理解强化学习是如何通过迭代逐步找到价值很有帮助。再一次让我想到自举(<em><strong>Bootstrap</strong></em>).</p>
+<p><img alt="Grid World 示例" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_grid_example.png">
+<em>图9: Grid World 示例。5×5 网格世界，A→A&rsquo; 获得 +10 奖励，B→B&rsquo; 获得 +5 奖励，其他转移获得 -1 奖励。</em></p>
+<p>文章中提到，$A$格子的<code>value</code>小于10，$B$格子的<code>value</code>大于5，是因为从$A$格子出发到达的$A&rsquo;$在边缘，很容易就掉出格子区域。而$B$格子的<code>value</code>大于5，是因为从$B$格子出发到达的$B&rsquo;$在中间，不容易掉出格子区域。这里的理解就是<code>value</code>的估计其实是一个对后续所有可能性的综合考量，更加接近于人站在当下对未来的局势进行判断，判断出来的态势用价值函数来表示。</p>
+<p><strong>迭代过程展示了$V(s)$是如何利用<code>reward</code>逐步逼近最终价值的</strong></p>
+<p>因为是迭代计算，整个公式给出的绝对数据其实只有条件概率和奖励（Reward）, 其实我们期望的是在经过尽可能少的迭代计算之后，就可以把最终的value收敛。</p>
+<p>下面的动图是经过30次迭代，每个格子的<code>value</code>的变化走势。可以看到当前的policy下，格子的取值很快就会收敛到稳定。</p>
+<p><img alt="状态价值迭代收敛示意" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/grid_world_state_value.gif">
+<em>图10: 状态价值迭代收敛过程。经过 30 次迭代，各格子的 value 逐渐收敛到稳定值。</em></p>
+<p><a href="https://github.com/warden2018/myRL/blob/main/Sutton_book/grid_world.py">代码实现</a></p>
+<h2 id="optimal-grid-world-policy">Optimal Grid World Policy<a hidden class="anchor" aria-hidden="true" href="#optimal-grid-world-policy">#</a></h2>
+<p>还是以网格世界为例，本章节并没有详细讨论采用什么样的算法来寻找最优的策略，这是后面章节需要讨论的问题，但是直接给出了最优的策略，参考<a href="#sec-optimal-policy">最优策略和最优价值函数</a>章节，如下图所示。
+<a href="https://github.com/warden2018/myRL/blob/main/Sutton_book/grid_world_optimal.py">代码实现</a>中, <code>getOptimalPolicyDirections(row, colunm)</code>其实就是最优策略的编码(图11 的c)，方便在使用Bellman公式时候，调用。</p>
+<p><img alt="网格世界最优策略" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/RL_grid_optimal_example.png">
+<em>图11: 网格世界最优策略示意。最优策略 $\pi_\star$ 在每个格子选择使 $q_\pi(s,a)$ 最大的动作。</em></p>
+<p><img alt="最优策略下的价值迭代" loading="lazy" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/grid_world_optimal_state_value.gif">
+<em>图12: 最优策略下的状态价值迭代过程。使用贪婪策略 $\pi(s) = \arg\max_a Q(s,a)$，价值快速收敛。</em></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/2024-09-06-book-the-gardener-and-the-carpenter/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>《园丁与木匠》</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/2024-07-25-book-china--economy/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>《置身事内：中国政府与经济发展》</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

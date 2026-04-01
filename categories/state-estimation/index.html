@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>State Estimation | Yang&#39;s Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/categories/state-estimation/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a29c24210eb31d9ce56f669c66a35c9c51b17376b7764e336a49af7dec914cf0.css" integrity="sha256-opwkIQ6zHZzlb2acZqNcnFGxc3a3dk4zakmvfeyRTPA=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/categories/state-estimation/index.xml" title="rss">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/categories/state-estimation/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><style>
+  @font-face {
+    font-family: 'TsangerJinKai';
+    src: url('/fonts/仓耳今楷04-W03.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  body {
+    font-family: 'TsangerJinKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+   
+  mjx-container, mjx-math, mjx-mrow {
+    font-family: MJXZERO, MJXTEX !important;
+  }
+
+   
+  .main {
+    max-width: 1200px !important;
+  }
+  .post-content {
+    max-width: 900px !important;
+  }
+
+   
+  html {
+    font-size: 20px;
+  }
+  .post-content p,
+  .post-content li {
+    font-size: 1.1rem;
+  }
+  .post-content h1 {
+    font-size: 2.2rem;
+  }
+  .post-content h2 {
+    font-size: 1.8rem;
+  }
+  .post-content h3 {
+    font-size: 1.5rem;
+  }
+
+   
+  .post-content img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+   
+  .post-content img + p em {
+    font-weight: bold;
+    font-style: normal;
+  }
+</style>
+
+
+
+</head>
+<body class="list" id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Yang&#39;s Blog (Alt + H)">Yang&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="分类">
+                    <span>分类</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main"> 
+<header class="page-header"><div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/categories/">Categories</a></div>
+  <h1>
+    State Estimation
+    <a href="/categories/state-estimation/index.xml" title="RSS" aria-label="RSS">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" height="23">
+        <path d="M4 11a9 9 0 0 1 9 9" />
+        <path d="M4 4a16 16 0 0 1 16 16" />
+        <circle cx="5" cy="19" r="1" />
+      </svg>
+    </a>
+  </h1>
+</header>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">手眼标定
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>本文参考了OPENCV
+问题描述 在机器人系统中，经常遇到需要确定相机（眼睛）与机器人末端（TCP）之间的安装关系。如果相机不在机械臂末端，往往末端会安装一个相机能够识别的标记物，相机系统给出该标记物在相机空间的三维坐标和姿态。无论上述哪种安装类型，都需要确定一个方程的解：$AX=XB$，$A,B$是已知的齐次矩阵，$X$是未知的齐次矩阵。
+利用李代数和最小二乘解决$AX=XB$的问题。
+平移旋转分开求解 从齐次等式提取旋转部分 $$ \begin{bmatrix} R_A &amp; b_A \ 0 &amp; 1 \end{bmatrix} \begin{bmatrix} R_X &amp; b_X \ 0 &amp; 1 \end{bmatrix}= \begin{bmatrix} R_X &amp; b_X \ 0 &amp; 1 \end{bmatrix}\begin{bmatrix} R_B &amp; b_B \ 0 &amp; 1 \end{bmatrix} $$
+$$ R_AR_X=R_XR_B $$
+李代数和李群之间的相互映射 在SO(3)上，旋转矩阵$R$的李代数$\phi$ $\boldsymbol u\in so(3)$是一个三维向量($\boldsymbol u$是一个单位向量，$\phi\in \mathbb R$)。$\boldsymbol u^{\wedge}$是一个反对称矩阵。
+so(3)李代数到SO(3)的指数映射–罗德里格斯公式 $$ R=e^{\phi \boldsymbol u^{\wedge}}=\cos\phi I &#43; (1-\cos \phi) \boldsymbol u\boldsymbol u^T &#43; \sin \phi \boldsymbol u^{\wedge} $$
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-12-02 00:00:00 +0000 UTC'>2025年12月2日</span>&nbsp;·&nbsp;<span>17 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 手眼标定" href="http://localhost:1313/posts/2025-12-02-robothand-eye_calibration/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">卡尔曼滤波器学习笔记（二）：随机过程和线性卡尔曼滤波器
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>随机过程的模型建立 一般地，我们研究的随机过程是一个动态的系统(Dynamical Systems).
+$$ \frac{d\boldsymbol{x(t)}}{dt}=f(\boldsymbol{x}(t),t,\beta) $$
+其中，$\beta$是系统中设置的参数，$x(t)$是状态向量，加入时间$t$作为参数代表状态向量的取值随时间变化。
+为了简化我们对系统的建模，首先把时间和系统参数对系统迭代的影响忽略掉，简化上面的等式：
+$$ \frac{d\boldsymbol{x}(t)}{dt}=f(\boldsymbol{x}(t)) \label{eq1}\tag{1} $$
+($\ref{eq1}$)是连续系统的描述，更常见的是离散系统，我们把时间离散化，得到：
+$$ \boldsymbol{x}_{k&#43;1}=F(\boldsymbol{x}_k) \label{eq2}\tag{2} $$
+上面的等式仍然不是很理想，因为经常性的，$F$是一个非线性的函数，对计算机来说，很难迭代地处理这样的函数，而且我们也很难给出$F$准确的函数表达式。
+那么，需要对($\ref{eq2}$)进行改写，在改写的过程中，考虑控制量的引入$\boldsymbol{u}$,如果系统建模方程中有高阶的导数，可以通过定义新的高阶导数作为变量组成维数更多的状态向量来降低阶数，最终得到个一阶的微分方程。这里具体怎么做就不展开了，并不属于这篇文章的重点内容，我们先直接使用结论。
+$$ \boldsymbol{\dot x}=A\boldsymbol{x}&#43;B\boldsymbol{u}&#43;\boldsymbol{w} \label{eq3}\tag{3} $$
+($\ref{eq3}$)描述的是系统在当前状态下，下一时刻会如何改变，是一个一阶的微分方程组（因为状态向量是多维度的），但是这样的方程组也不是我们想要的，我们期望是可以根据前一时刻的状态直接线性运算得到后一时刻的预测状态。
+状态转移方程 ($\ref{eq3}$) 描述的是下一时刻系统状态的增长或者是变化和当前的状态有什么关系，假如没有加入人为的控制，比如，让一个倒立摆自由运动，不提供平衡的直线运动单元，那么这个系统的一些特性，比如可控性，稳定性都可以通过研究$A$的特征值和特征向量来快速得到。 加入人为的控制量$\boldsymbol{u}$可以改变系统的特性，按照我们的期望来改造，Brunton老师说得是manipulate。在动态系统的控制领域，对矩阵$A$的研究会更多，$A$的学术用语为动态系统矩阵（System Dynamics Matrix），在状态估计领域，我们对状态转移方程更关心。实际系统经常是非线性的，但是在局部我们可以线性化。目前，从一阶微分方程组如何推导出状态转移方程是本次不讨论的内容，但是是有若干种技术去实现。
+$$ \boldsymbol{x}_{k&#43;1}=F\boldsymbol{x}_k&#43;B\boldsymbol{u}_k &#43; \boldsymbol{w}_k \label{eq4}\tag{4} $$
+($\ref{eq4}$)中的$F$叫做状态转移矩阵（State Transition Matrix）。
+非线性的系统状态转移矩阵是根据系统的雅可比矩阵来确定的，每次迭代都会变。后续需要确认是不是这样。
+到目前为止，根据系统的物理定律我们在没有测量的状态下得到系统状态是如何迭代的，但是需要注意($\ref{eq4}$)中的$\boldsymbol{w}_k$：系统噪声。随着时间迭代，我们仅仅使用状态转移方程估计系统状态会越来越不准，因为描述状态的协方差矩阵$Q$会变大。
+随机过程的贝叶斯后验概率分布推导 根据第一讲贝叶斯滤波的基本思路，系统迭代的过程中，需要有测量数据做融合，从概率论角度讲就是测量数据$\boldsymbol{Y}$作为随机变量，根据传感器的特性，它的似然概率分布是已知的：$P(Y&lt;y|X)$，那么在预测步骤之后，有状态向量的先验分布$P(X&lt;x)$，那么我们的目标是得到基于两者的后验分布。
+在推导之前，需要非常明确这几条：
+状态向量迭代的过程虽然是离散的，例如$T_1$, $T_2$时刻的状态，但是在某一时刻的取值仍然是连续的随机变量，我们在第一篇里面得到的结论仍然适用于某一时刻的情况。 在不同的时刻下，先验、后验分布都在变化，先验分布变化是因为系统因为物理、化学等规律随之前的状态产生了新的变化 – 就是由状态转移方程描述的。 后面的公式当中，$f_0(X)$表示在$T=T_0$时刻也就初始时刻的概率密度函数，$P(X_1&lt;x)$是第一次迭代之后的先验概率分布函数，$P(X_1&lt;x|Y_1=y)$是融合了似然概率之后的后验概率分布函数。
+状态转移的概率分布推导 第一个需要推导的是如何根据$P(X_0&lt;x)$和($\ref{eq4}$)推导$P(X_1&lt;x)$ 重写($\ref{eq4}$):
+$$ X_{k&#43;1}=FX_k&#43;Bu_k&#43;W_k \label{eq5}\tag{5} $$
+($\ref{eq5}$)可以理解成对随机变量进行逻辑运算，后面会使用到。
+对$P(X_1&lt;x)$进行全概率公式展开：
+$$ P(X_1&lt;x)=\lim_{\epsilon \to 0} \Sigma_{a=-\infty}^{a=x} P(a&lt;X_1&lt;a&#43;\epsilon) \label{eq6}\tag{6} $$
+$$ \lim_{\epsilon \to 0}P(a&lt;X_1&lt;a&#43;\epsilon)=\lim_{\epsilon \to 0}\int_{v=-\infty}^{v=\infty} P(a&lt;X_1&lt;a&#43;\epsilon|X_0=v)f_{X_0}(v)dv \label{eq7}\tag{7} $$
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-12-08 00:00:00 +0000 UTC'>2023年12月8日</span>&nbsp;·&nbsp;<span>104 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 卡尔曼滤波器学习笔记（二）：随机过程和线性卡尔曼滤波器" href="http://localhost:1313/posts/2023-12-08-kalman-filter-theory-2/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>感谢 点一个大大的赞！ 经典教材的重新排版
+文章中深蓝色字体表示摘录自该教材。
+给老王点赞！ 老王
+这个作者真心用心地交互式展示数学和工程实践。 Kalman-and-Bayesian-Filters-in-Python
+这篇容易让我们建立直觉的理解
+3blue1brown-bayes-theorem
+背景知识 一本很有名的书，学习作者对内容的安排。 需要的预备知识：
+线性代数
+概率，概率密度函数
+离散变量贝叶斯滤波
+连续变量贝叶斯滤波推导
+学习心得 首先是概念理解，需要把概念代表的物理意义搞清楚：事件≠随机变量，随机变量是对事件的数量化描述，事件是随机变量的取值，随机变量的取值可以是一个数，也可以是一个向量。概率密度函数是对随机变量的取值的概率分布的描述，概率密度函数的积分就是概率。概率密度函数的积分就是概率，概率密度函数的积分就是概率，概率密度函数的积分就是概率。重要的事情说三遍。
+亲自手写公式推导一遍，在这个过程中会强烈加深对内部逻辑的理解，争取可以做到经过很长时间之后，你仍然可以随便拿一张纸开始从零推导
+感觉基于贝叶斯的随机过程计算其实是在更新变量的概率分布，并不是直接计算最终你看到的数据，最后你得到的数据只是这个过程当中的附带产品。
+上面这一条的感受里面说的计算过程，基础是全概率下的全部样本空间，像是在一个无限大的平面上（因为真实值的取值是无穷无尽的）时刻飘过一团云，这团云和云笼罩下的区域是本次计算的结果。
+符号说明 一般性地，我们用$\boldsymbol X$表示随机变量，用$\boldsymbol x$表示随机变量的某一个具体的取值。用$\boldsymbol{y}$表示测量值。$\boldsymbol{u}$表示系统的控制量。$\boldsymbol{w}$表示系统的过程噪声，$\boldsymbol{v}$表示测量噪声。黑体代表这些变量是向量。
+概率论回顾 随机变量$\boldsymbol X$(Random Variable)的物理意义是把随机事件数量化。随机变量分为离散随机变量和连续随机变量。离散随机变量的取值是有限的，连续随机变量的取值是无限的。随机变量的取值可以是一个数，也可以是一个向量。个人觉得随机变量只是对随机事件的定量描述，是更加具象化的表达方式。更加核心的还是随机事件，所以下面的描述都是基于事件来推导公式的，并没有带入随机变量的表达。
+条件概率的定义： 某事件B发生的条件下，事件A发生的概率，记为$P(A|B)$。 工程上是把事件看作随机变量在某一时刻取某一个数值，所以，在实际计算时，计算的是条件概率密度函数，并不是单单一个条件概率。
+乘法公式： $P(AB)=P(A)P(B|A)=P(B)P(A|B)$ 描述的是随着时间的推移，事件A和事件B同时发生的概率可以通过事件A发生的概率和基于A发生B发生的概率相乘得到。方便针对每一个概率进行单独的计算从而得到一个总的概率。
+全概率公式： 全概率公式是另一个很重要的公式，提供了计算复杂事件概率的一条有效的途径，使得一个复杂事件的概率可以通过简单的计算得到。
+全概率公式：设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有 $P(A)=\Sigma P(B_i)P(A|B_i)$
+贝叶斯公式： 这个公式得到的前提是乘法公式和全概率公式。 设$B_1,B_2,\cdots,B_n$是样本空间$\Omega$的一个划分，且$\cup_{i=1}^n B_i=\Omega$, $P(B_i)&gt;0(i=1,2,\cdots,n)$，则对于任一事件$A$，有 $P(B_i|A)=\frac{P(B_i)P(A|B_i)}{\Sigma_{j=1}^n P(B_j)P(A|B_j)}$
+体会：虽然我没有查找托马斯·贝叶斯发现这个定理的过程是不是因为实际的应用问题，因为在状态估计这个领域，具有非常强的适配性，我们可以把样本空间理解成状态变量的空间，$B_i$理解成离散的单个样本，$A$理解成对样本空间的某次测量，$P(B_i)$理解成状态变量的先验概率，$P(A|B_i)$理解成测量值的似然概率 – 就是假设真实值为$B_i$的条件下测量值为$A$的概率，$P(B_i|A)$理解成状态变量的后验概率（经过测量更新），这样就可以把贝叶斯公式应用到状态估计当中了。
+维基百科里面说这个方程的分母是$P(B)$
+然后我看到了它说$P(B)$是边缘分布，然后我点进去看啥是边缘分布： 边缘分布
+在这里隐约感觉到：这里的论述和线性代数里面的空间向量怎么很类似？跟信号的傅里叶分解也很类似：全部都是把一个复杂的东西分解成一些简单的东西，然后再把这些简单的东西组合起来得到复杂的东西。这块简单的东西就是全样本空间下每一种样本的概率，类似于空间中的基向量，或者傅里叶变换中的基函数，然后这些基函数前面的系数就是权重或者是事件A和$B_i$重叠了多少程度，然后求和就得到了边缘概率。
+最后再次用更好记忆的方式写一遍贝叶斯公式：
+$$ 后验条件概率=\frac{先验概率*似然概率}{边缘概率} $$
+条件概率是概率论中一个既重要又实用的概念。 – 1.4《概率论与数理统计》茆诗松
+pdf: probability density function, 概率密度函数 cdf: cumulative distribution function, 累积分布函数 先验概率：就是人们根据自己系统的模型给出来的经验概率 后验概率：就是通过传感器本身的测量特性–传感器测某个状态得到的结果这个变量的概率分布和先验的概率分布，得到的对系统的状态变量条件概率$P(X=x|Y=y)$ 似然概率：是一个条件概率，意思是当真实值取值为$x$的时候，测量值取值为$y$的概率，$P(Y=y|X=x)$ (这里默认测量值测量到的就是真实值) 我觉得还需要加一个边缘概率：边缘概率就是全概率公式对于某一个事件的应用，就是基于所有可能的状态量，测量得到$y$之后的条件概率和先验概率乘积再相加。展现形式是和全概率一样的，只不过这里具有了更多的实际意义。
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-12-01 00:00:00 +0000 UTC'>2023年12月1日</span>&nbsp;·&nbsp;<span>49 分钟</span>&nbsp;·&nbsp;<span>Yang</span></footer>
+  <a class="entry-link" aria-label="post link to 卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波" href="http://localhost:1313/posts/2023-12-01-kalman-filter-theory-1/"></a>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Yang&#39;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
