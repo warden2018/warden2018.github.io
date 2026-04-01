@@ -94,7 +94,7 @@ math: true
 
 ## 关于作者的学术研究
 
-结合之前的卡尔曼滤波的文章，[卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波](http://localhost:4000/2023/12/01/2023-12-01-Kalman-Filter-Theory-1/)
+结合之前的卡尔曼滤波的文章，[卡尔曼滤波器学习笔记（一）：概率论和贝叶斯滤波](/2023/12/01/2023-12-01-Kalman-Filter-Theory-1/)
 在儿童学习过程中，贝叶斯学习被作者重点提及。
 
 在作者的`Reconstructing constructivism: Causal models, Bayesian learning mechanisms and the theory theory`一文中，我简单记录阅读的收获。

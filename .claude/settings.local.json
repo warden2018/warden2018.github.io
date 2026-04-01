@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(while read:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/Yang/workspace/blog/hugo_blog/public/**)",
+      "Bash(done)",
+      "Bash(grep -v ':0$')",
+      "Bash(hugo --gc --minify)"
+    ]
+  }
+}
