@@ -231,6 +231,6 @@ $$
 [!!!GREAT series:
 Kalman-and-Bayesian-Filters-in-Python](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python)
 
-<iframe width="100%" height="800" src="https://images-1302340771.cos.ap-beijing.myqcloud.com/images/茆诗松概率论LaTeX.pdf">
+[茆诗松概率论](https://github.com/re-book/ptmst/blob/master/%E8%8C%86%E8%AF%97%E6%9D%BE%E6%A6%82%E7%8E%87%E8%AE%BALaTeX.pdf)
 
 [思考，快与慢](https://book.douban.com/subject/10785583/)
