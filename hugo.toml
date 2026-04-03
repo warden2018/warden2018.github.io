@@ -24,6 +24,11 @@ theme = "PaperMod"
     Title = "Yang's Blog"
     Content = "记录学习与生活"
 
+  [params.assets]
+    favicon = "favicon-32x32.png"
+    favicon16x16 = "favicon-16x16.png"
+    favicon32x32 = "favicon-32x32.png"
+
   [[params.socialIcons]]
     name = "github"
     url = "https://github.com/warden2018"
