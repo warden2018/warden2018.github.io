@@ -33,10 +33,6 @@ theme = "PaperMod"
     name = "github"
     url = "https://github.com/warden2018"
 
-[params.editPost]
-  URL = "https://github.com/warden2018/blog"
-  Text = "Suggest Changes"
-  appendFilePath = true
 
 [menu]
   [[menu.main]]
