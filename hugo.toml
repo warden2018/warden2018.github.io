@@ -29,21 +29,8 @@ theme = "PaperMod"
       enable = true
       repo = "warden2018/warden2018.github.io"  # 替换为你的 GitHub 仓库
       issueTerm = "pathname"  # 使用页面路径作为 issue 标题
-      theme = "github-light"  # 主题：github-light, github-dark, preferred-color-scheme
+      theme = "preferred-color-scheme"  # 主题：github-light, github-dark, preferred-color-scheme
 
-    # Giscus 配置（可选）
-    [params.comments.giscus]
-      enable = false  # 如果要使用 Giscus，设为 true
-      repo = "warden2018/warden2018.github.io"
-      repoId = "R_kgDOGHGQow"  # 从 Giscus 获取
-      category = "Announcements"
-      categoryId = "DIC_kwDOGHGQo84CPZde"  # 从 Giscus 获取
-      mapping = "pathname"
-      strict = "0"
-      reactionsEnabled = "1"
-      emitMetadata = "0"
-      inputPosition = "bottom"
-      lang = "zh-CN"
 
   [params.homeInfoParams]
     Title = "Yang's Blog"
