@@ -2,11 +2,10 @@
 title:  相似矩阵和矩阵的特征值特征向量
 date:   2020-01-31
 categories:
-  - Linear Algebra
+  - 线性代数
 author: Yang
 tags:
-  - Linear Algebra
-  - Similar Matrix
+  - 线性代数
 
 math: true
 ---

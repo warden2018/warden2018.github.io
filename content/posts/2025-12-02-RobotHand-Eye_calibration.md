@@ -2,10 +2,10 @@
 title: 手眼标定
 date: 2025-12-02
 categories:
-  - State Estimation
+  - 状态估计
 author: Yang
 tags:
-  - 标定
+  - 手眼标定
 math: true
 ---
 

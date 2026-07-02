@@ -2,10 +2,10 @@
 title:  矩阵的奇异值分解
 date:   2020-06-22
 categories:
-  - Linear Algebra
+  - 线性代数
 author: Yang
 tags:
-  - Linear Algebra
+  - 线性代数
 math: true
 mathTags: false
 ---

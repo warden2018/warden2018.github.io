@@ -2,12 +2,10 @@
 title:  投影矩阵和最小二乘
 date:   2020-01-30
 categories:
-  - Linear Algebra
+  - 线性代数
 author: Yang
 tags:
-  - Least Squares
-  - Linear Algebra
-  - Projection Matrix
+  - 线性代数
 math : true
 ---
 ## 投影矩阵

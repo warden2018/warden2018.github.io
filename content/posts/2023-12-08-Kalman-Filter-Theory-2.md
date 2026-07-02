@@ -2,10 +2,10 @@
 title: 卡尔曼滤波器学习笔记（二）：随机过程和线性卡尔曼滤波器
 date:   2023-12-08
 categories:
-  - State Estimation
+  - 状态估计
 author: Yang
 tags:
-  - Kalman Filtering
+  - 卡尔曼滤波
 math: true
 ---
 

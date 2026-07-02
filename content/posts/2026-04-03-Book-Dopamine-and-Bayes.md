@@ -2,11 +2,10 @@
 title: "多巴胺、贝叶斯与伯努利的谬误：我们如何被'可能性'欺骗"
 date: 2026-04-03
 categories:
-  - Book
+  - 读书
 author: Yang
 tags:
   - 读书
-  - 概率论
 math: true
 ---
 

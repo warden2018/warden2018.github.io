@@ -2,7 +2,7 @@
 title: 《置身事内：中国政府与经济发展》
 date:   2024-07-25
 categories:
-  - Book
+  - 读书
 author: Yang
 tags:
   - 读书

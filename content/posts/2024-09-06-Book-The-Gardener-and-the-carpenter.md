@@ -2,7 +2,7 @@
 title: 《园丁与木匠》
 date: 2024-09-06
 categories:
-  - Book
+  - 读书
 author: Yang
 tags:
   - 读书

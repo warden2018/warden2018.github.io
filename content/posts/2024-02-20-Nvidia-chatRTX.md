@@ -5,7 +5,7 @@ categories:
   - AI
 author: Yang
 tags:
-  - GPT offline
+  - AI
 math: true
 ---
 

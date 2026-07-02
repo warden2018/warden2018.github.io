@@ -2,7 +2,7 @@
 title: 设计模式之“状态模式”
 date:   2024-07-23
 categories:
-  - Design Pattern
+  - 编程
 author: Yang
 tags:
   - 设计模式

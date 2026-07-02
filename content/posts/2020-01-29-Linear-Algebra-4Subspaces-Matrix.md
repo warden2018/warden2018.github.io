@@ -2,10 +2,10 @@
 title:  "矩阵的四个子空间"
 date:   2020-01-29
 categories:
-  - Linear Algebra
+  - 线性代数
 author: Yang
 tags:
-  - Linear Algebra
+  - 线性代数
 math: true
 ---
 

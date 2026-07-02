@@ -2,7 +2,7 @@
 title: 《思考，快与慢》
 date:   2023-12-24
 categories:
-  - Book
+  - 读书
 author: Yang
 tags:
   - 读书
