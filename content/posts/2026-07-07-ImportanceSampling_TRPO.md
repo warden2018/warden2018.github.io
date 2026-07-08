@@ -47,7 +47,7 @@ $$
 $$
 
 ## Importance Sampling
-该方法是为了解决已知一种分布$q(x)$,需要对另一种分布$q(x)$下的$f(x)$求期望的问题。
+该方法是为了解决已知一种分布$q(x)$,需要对另一种分布$p(x)$下的$f(x)$求期望的问题。
 
 **Changing the Sampling Problem**: Assume that we want to evaluate an expectation of a function $f(x)$ with respect to a probability distribution $p(x)$ but have another distribution $q(x)$ that is easier to sample from. Further, assume that $q(x)> 0$ whenever $p(x)> 0$.
 We can introduce $q(x)$ into our expectation by multiplying and dividing by the same term,
